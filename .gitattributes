@@ -1,0 +1,15 @@
+# Keep the pinned C oracle byte-identical on every platform:
+# core.autocrlf must never touch reference/.
+reference/** -text
+
+# Scripts and sources always check out with LF.
+*.sh text eol=lf
+*.rs text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+Cargo.lock text eol=lf

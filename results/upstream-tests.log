@@ -1,0 +1,428 @@
+ok 1 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 526
+    # Subtest: request
+    # simple
+    ok 1 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 64
+    ok 2 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 65
+    ok 3 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 66
+    ok 4 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 67
+    ok 5 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 68
+    # partial
+    ok 6 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 70
+    # parse headers
+    ok 7 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 72
+    ok 8 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 73
+    ok 9 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 74
+    ok 10 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 75
+    ok 11 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 76
+    ok 12 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 77
+    ok 13 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 78
+    ok 14 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 79
+    ok 15 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 80
+    # multibyte included
+    ok 16 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 82
+    ok 17 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 83
+    ok 18 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 84
+    ok 19 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 85
+    ok 20 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 86
+    ok 21 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 87
+    ok 22 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 88
+    ok 23 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 89
+    ok 24 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 90
+    # parse multiline
+    ok 25 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 92
+    ok 26 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 93
+    ok 27 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 94
+    ok 28 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 95
+    ok 29 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 96
+    ok 30 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 97
+    ok 31 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 98
+    ok 32 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 99
+    ok 33 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 100
+    ok 34 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 101
+    ok 35 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 102
+    # parse header name with trailing space
+    ok 36 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 104
+    # incomplete 1
+    ok 37 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 106
+    ok 38 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 107
+    # incomplete 2
+    ok 39 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 108
+    ok 40 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 109
+    # incomplete 3
+    ok 41 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 110
+    ok 42 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 111
+    # incomplete 4
+    ok 43 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 112
+    ok 44 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 113
+    # incomplete 5
+    ok 45 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 114
+    # incomplete 6
+    ok 46 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 115
+    # incomplete 7
+    ok 47 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 116
+    ok 48 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 117
+    # incomplete 8
+    ok 49 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 118
+    ok 50 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 119
+    # slowloris (incomplete)
+    ok 51 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 121
+    # slowloris (complete)
+    ok 52 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 122
+    # empty method
+    ok 53 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 124
+    # empty request-target
+    ok 54 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 125
+    # empty header name
+    ok 55 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 127
+    # header name (space only)
+    ok 56 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 128
+    # NUL in method
+    ok 57 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 130
+    # tab in method
+    ok 58 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 131
+    # invalid method
+    ok 59 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 132
+    # DEL in uri-path
+    ok 60 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 133
+    # NUL in header name
+    ok 61 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 134
+    # NUL in header value
+    ok 62 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 135
+    # CTL in header name
+    ok 63 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 136
+    # CTL in header value
+    ok 64 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 137
+    # invalid char in header value
+    ok 65 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 138
+    # accept MSB chars
+    ok 66 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 139
+    ok 67 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 140
+    ok 68 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 141
+    ok 69 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 142
+    ok 70 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 143
+    ok 71 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 144
+    ok 72 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 145
+    # accept |~ (though forbidden by SSE)
+    ok 73 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 147
+    ok 74 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 148
+    ok 75 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 149
+    ok 76 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 150
+    # disallow {
+    ok 77 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 152
+    # exclude leading and trailing spaces in header value
+    ok 78 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 154
+    ok 79 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 155
+    # accept multiple spaces between tokens
+    ok 80 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 157
+    1..80
+ok 2 - request
+    # Subtest: response
+    # simple
+    ok 1 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 181
+    ok 2 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 182
+    ok 3 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 183
+    ok 4 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 184
+    ok 5 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 185
+    # partial
+    ok 6 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 187
+    # parse headers
+    ok 7 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 189
+    ok 8 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 190
+    ok 9 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 191
+    ok 10 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 192
+    ok 11 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 193
+    ok 12 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 194
+    ok 13 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 195
+    ok 14 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 196
+    ok 15 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 197
+    # parse multiline
+    ok 16 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 199
+    ok 17 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 200
+    ok 18 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 201
+    ok 19 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 202
+    ok 20 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 203
+    ok 21 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 204
+    ok 22 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 205
+    ok 23 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 206
+    ok 24 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 207
+    ok 25 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 208
+    ok 26 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 209
+    # internal server error
+    ok 27 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 211
+    ok 28 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 212
+    ok 29 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 213
+    ok 30 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 214
+    ok 31 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 215
+    ok 32 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 216
+    # incomplete 1
+    ok 33 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 218
+    # incomplete 2
+    ok 34 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 219
+    # incomplete 3
+    ok 35 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 220
+    ok 36 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 221
+    # incomplete 4
+    ok 37 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 222
+    ok 38 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 223
+    # incomplete 5
+    ok 39 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 224
+    # incomplete 6
+    ok 40 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 225
+    ok 41 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 226
+    # incomplete 7
+    ok 42 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 227
+    ok 43 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 228
+    # incomplete 8
+    ok 44 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 229
+    # incomplete 9
+    ok 45 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 230
+    ok 46 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 231
+    # incomplete 10
+    ok 47 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 232
+    ok 48 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 233
+    # incomplete 11
+    ok 49 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 234
+    ok 50 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 235
+    # incomplete 11
+    ok 51 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 237
+    ok 52 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 238
+    # incomplete 12
+    ok 53 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 239
+    ok 54 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 240
+    ok 55 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 241
+    ok 56 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 242
+    # slowloris (incomplete)
+    ok 57 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 244
+    # slowloris (complete)
+    ok 58 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 245
+    # invalid http version
+    ok 59 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 247
+    # invalid http version 2
+    ok 60 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 248
+    # no status code
+    ok 61 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 249
+    # accept missing trailing whitespace in status-line
+    ok 62 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 251
+    ok 63 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 252
+    # garbage after status 1
+    ok 64 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 253
+    # garbage after status 2
+    ok 65 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 254
+    # garbage after status 3
+    ok 66 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 255
+    # exclude leading and trailing spaces in header value
+    ok 67 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 257
+    ok 68 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 258
+    # accept multiple spaces between tokens
+    ok 69 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 260
+    1..69
+ok 3 - response
+    # Subtest: headers
+    # simple
+    ok 1 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 279
+    ok 2 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 280
+    ok 3 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 281
+    ok 4 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 282
+    ok 5 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 283
+    ok 6 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 284
+    # slowloris
+    ok 7 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 286
+    ok 8 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 287
+    ok 9 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 288
+    ok 10 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 289
+    ok 11 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 290
+    ok 12 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 291
+    # partial
+    ok 13 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 293
+    # error
+    ok 14 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 295
+    1..14
+ok 4 - headers
+    # Subtest: chunked
+    # testing at-once, source at line 410
+    ok 1 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 2 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 3 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 4 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing at-once, source at line 411
+    ok 5 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 6 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 7 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 8 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing at-once, source at line 412
+    ok 9 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 10 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 11 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 12 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing at-once, source at line 413
+    ok 13 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 14 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 15 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 16 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing at-once, source at line 414
+    ok 17 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 18 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 19 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 20 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing at-once, source at line 416
+    ok 21 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 22 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 23 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 24 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing per-byte, source at line 410
+    ok 25 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 26 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 27 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 28 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # testing per-byte, source at line 411
+    ok 29 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 30 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 31 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 32 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # testing per-byte, source at line 412
+    ok 33 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 34 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 35 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 36 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # testing per-byte, source at line 413
+    ok 37 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 38 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 39 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 40 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # testing per-byte, source at line 414
+    ok 41 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 42 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 43 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 44 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # testing per-byte, source at line 416
+    ok 45 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 46 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 47 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 48 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # failures
+    # testing failure at-once, source at line 420
+    ok 49 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 420
+    ok 50 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    # testing failure at-once, source at line 422
+    ok 51 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 422
+    ok 52 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 396
+    # testing failure at-once, source at line 423
+    ok 53 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 423
+    ok 54 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    # testing failure at-once, source at line 425
+    ok 55 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 425
+    ok 56 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    # testing failure at-once, source at line 428
+    ok 57 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 428
+    ok 58 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    # testing failure at-once, source at line 429
+    ok 59 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 429
+    ok 60 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    # testing failure at-once, source at line 430
+    ok 61 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 430
+    ok 62 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    # testing failure at-once, source at line 431
+    ok 63 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 431
+    ok 64 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    # testing failure at-once, source at line 432
+    ok 65 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 432
+    ok 66 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    # testing failure at-once, source at line 433
+    ok 67 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 378
+    # testing failure per-byte, source at line 433
+    ok 68 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 387
+    1..68
+ok 5 - chunked
+    # Subtest: chunked-consume-trailer
+    # testing at-once, source at line 441
+    ok 1 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 2 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 3 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    # testing at-once, source at line 442
+    ok 4 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 5 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 6 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    # testing at-once, source at line 443
+    ok 7 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 8 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 9 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    # testing at-once, source at line 444
+    ok 10 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 11 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 12 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 13 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing at-once, source at line 445
+    ok 14 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 15 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 16 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 17 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing at-once, source at line 447
+    ok 18 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 19 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 20 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 21 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing at-once, source at line 448
+    ok 22 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 316
+    ok 23 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 317
+    ok 24 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 318
+    ok 25 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 321
+    # testing per-byte, source at line 441
+    ok 26 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 27 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 28 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    # testing per-byte, source at line 442
+    ok 29 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 30 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 31 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    # testing per-byte, source at line 443
+    ok 32 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 33 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 34 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    # testing per-byte, source at line 444
+    ok 35 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 36 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 37 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 38 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # testing per-byte, source at line 445
+    ok 39 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 40 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 41 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 42 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # testing per-byte, source at line 447
+    ok 43 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 44 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 45 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 46 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    # testing per-byte, source at line 448
+    ok 47 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 353
+    ok 48 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 355
+    ok 49 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 356
+    ok 50 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 359
+    1..50
+ok 6 - chunked-consume-trailer
+    # Subtest: chunked-leftdata
+    ok 1 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 462
+    ok 2 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 463
+    ok 3 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 464
+    ok 4 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 465
+    ok 5 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 466
+    1..5
+ok 7 - chunked-leftdata
+    # Subtest: chunked-overhead
+    ok 1 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 510
+    ok 2 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 511
+    ok 3 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 512
+    ok 4 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 514
+    ok 5 - D:/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/test.c 515
+    1..5
+ok 8 - chunked-overhead
+1..8

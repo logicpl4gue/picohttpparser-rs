@@ -1,0 +1,12 @@
+[package]
+name = "picohttpparser-rs"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Drop-in Rust rewrite of PicoHTTPParser — Milestone 1 ABI shell (C ABI stubs, no parsing yet)"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
