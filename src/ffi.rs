@@ -6,6 +6,12 @@
 //! argument/return types, struct layouts) and return failure until the real
 //! parsers land in Milestone 2+. Nothing here dereferences its arguments, so
 //! the stubs are safe to call with null pointers for ABI-smoke purposes.
+//!
+//! Panic policy (pinned before M2): keep `panic = "unwind"`, rely on
+//! edition-2024 `extern "C"` being nounwind (a panic aborts, never unwinds
+//! through the C ABI), wrap real M2+ bodies in `catch_unwind` mapping panic
+//! to the documented error return, and keep the parser core panic-free
+//! (`clippy::unwrap_used`/`expect_used` are denied in `Cargo.toml`).
 
 use core::ffi::{c_char, c_int};
 

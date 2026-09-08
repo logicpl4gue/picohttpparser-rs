@@ -4,7 +4,9 @@
 #
 # 1. Snapshot environment + tool versions.
 # 2. Verify the pinned reference (sha256sum -c reference/SHA256SUMS).
-# 3. Build the upstream benchmark with ${CC:-cc} -O2 and time one run.
+# 3. Build the upstream benchmark with ${CC:-cc} -O2 and time N trials
+#    (first trial discarded as warmup); validate the timer on every trial and
+#    record runs[] + mean/min. A single timed run is not a baseline.
 # 4. Build the upstream test suite out-of-tree (needs CC + picotest sources;
 #    generates a sys/mman.h shim under target/ when the libc lacks POSIX mmap,
 #    runs via prove when present, else executes test-bin directly) and record
@@ -44,6 +46,16 @@ else
   CC_PATH=""
   CC_V=""
 fi
+# Machine identity (plan §7 Phase-0 step 2): a number without a machine is trivia.
+CPU_MODEL="$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2- | sed 's/^ *//;s/ *$//')"
+# Fallback for native-Windows toolchains first in PATH (no MSYS /proc):
+if [ -z "$CPU_MODEL" ] && command -v powershell.exe >/dev/null 2>&1; then
+  CPU_MODEL="$(powershell.exe -NoProfile -Command "Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Name" 2>/dev/null | tr -d '\r')"
+fi
+[ -n "$CPU_MODEL" ] || CPU_MODEL="unknown"
+CPU_COUNT="$(nproc 2>/dev/null || echo "${NUMBER_OF_PROCESSORS:-unknown}")"
+POWER_SCHEME="$(powercfg //getactivescheme 2>/dev/null | sed -n 's/.*(\(.*\)).*/\1/p')"
+[ -n "$POWER_SCHEME" ] || POWER_SCHEME="unknown"
 MAKE_PRESENT="$(command -v make >/dev/null 2>&1 && echo present || echo missing)"
 PROVE_PRESENT="$(command -v prove >/dev/null 2>&1 && echo present || echo missing)"
 PERL_PRESENT="$(command -v perl >/dev/null 2>&1 && echo present || echo missing)"
@@ -55,18 +67,51 @@ PICOTEST_PRESENT="present" && [ -f "$REF/picotest/picotest.c" ] || PICOTEST_PRES
 HASH_DETAIL="$( cd "$REF" && sha256sum -c SHA256SUMS 2>&1 | tr '\n' ';' )"
 
 # --- 3. benchmark -----------------------------------------------------------
-BENCH_STATUS="skipped"; BENCH_REASON=""; BENCH_SECS=""; BENCH_ITERS=""
+# Trials, not a single run: N timed launches, first discarded as warmup
+# (cold pages, CRT/DLL load, Defender scan, turbo ramp all live there).
+BENCH_N=7
+BENCH_STATUS="skipped"; BENCH_REASON=""
+BENCH_MEAN="null"; BENCH_MIN="null"; BENCH_NSPP="null"; BENCH_WARM="null"
+BENCH_RUNS="[]"; BENCH_TRIALS=0; BENCH_ITERS="null"
+BENCH_CORPUS_SHA=""; TIMER_GRAN="null"
+TIMER_NAME="date +%s%N"
 if [ "$CC_PRESENT" = "present" ]; then
   mkdir -p "$BENCH_DIR"
   BENCH_BIN="$BENCH_DIR/bench"
   if $CC $CFLAGS -o "$BENCH_BIN" "$REF/bench.c" "$REF/picohttpparser.c" >"$BENCH_DIR/build.log" 2>&1; then
-    START=$(date +%s%N); "$BENCH_BIN"; RC=$?; END=$(date +%s%N)
-    if [ $RC -eq 0 ]; then
-      BENCH_STATUS="passed"
-      BENCH_SECS=$(awk "BEGIN{printf \"%.3f\", ($END-$START)/1000000000}")
-      BENCH_ITERS="10000000"
-    else
-      BENCH_STATUS="failed"; BENCH_REASON="bench binary exited ${RC}"
+    BENCH_CORPUS_SHA="$(sha256sum "$REF/bench.c" 2>/dev/null | cut -d' ' -f1)"
+    # No separate granularity probe: back-to-back `date` spawns measure MSYS
+    # fork/exec + scheduler noise (~10-30 ms), not clock resolution, so such a
+    # probe would launder spawn latency as "granularity". The %N unit is
+    # 100 ns and every trial is timer-validated (>=16 digits, END > START);
+    # run-to-run spread (~0.1 s, recorded in benchRunsSeconds) dominates any
+    # plausible clock quantization by 6+ orders of magnitude.
+    BENCH_STATUS="passed"
+    _sum="0"; _n=0; _min=""; _runs=""
+    for _i in $(seq 1 "$BENCH_N"); do
+      START=$(date +%s%N); "$BENCH_BIN"; RC=$?; END=$(date +%s%N)
+      if [ "$RC" -ne 0 ]; then
+        BENCH_STATUS="failed"; BENCH_REASON="bench binary exited ${RC} on trial ${_i}"; break
+      fi
+      if ! [[ "$START" =~ ^[0-9]{16,}$ && "$END" =~ ^[0-9]{16,}$ && "$END" -gt "$START" ]]; then
+        BENCH_STATUS="failed"; BENCH_REASON="timer validation failed on trial ${_i} (START=$START END=$END)"; break
+      fi
+      _sec=$(awk "BEGIN{printf \"%.3f\", ($END-$START)/1000000000}")
+      if [ "$_i" -eq 1 ]; then
+        BENCH_WARM="$_sec"   # warmup: recorded, never averaged
+      else
+        _sum=$(awk "BEGIN{printf \"%.3f\", $_sum + $_sec}")
+        _n=$((_n + 1))
+        if [ -z "$_min" ] || [ "$(awk "BEGIN{print ($_sec < $_min)}")" -eq 1 ]; then _min="$_sec"; fi
+        _runs="${_runs}${_runs:+,}$_sec"
+      fi
+    done
+    if [ "$BENCH_STATUS" = "passed" ]; then
+      BENCH_RUNS="[$_runs]"; BENCH_TRIALS="$_n"
+      BENCH_MEAN=$(awk "BEGIN{printf \"%.3f\", $_sum / $_n}")
+      BENCH_MIN="$_min"
+      BENCH_NSPP=$(awk "BEGIN{printf \"%.1f\", ($BENCH_MEAN / 10000000) * 1000000000}")
+      BENCH_ITERS=10000000
     fi
   else
     BENCH_STATUS="failed"; BENCH_REASON="cc build failed, see target/c-baseline/build.log"
@@ -191,7 +236,7 @@ fi
 mkdir -p "$ROOT/results"
 if ! cat > "$OUT" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "generatedUtc": "$(jstr "$GEN_UTC")",
   "generatedBy": "scripts/run_baseline.sh",
   "pin": {
@@ -211,6 +256,9 @@ if ! cat > "$OUT" <<EOF
     "cc": "$CC_PRESENT",
     "ccPath": "$(jstr "$CC_PATH")",
     "ccVersion": "$(jstr "$CC_V")",
+    "cpu": "$(jstr "$CPU_MODEL")",
+    "cpuCount": "$(jstr "$CPU_COUNT")",
+    "powerScheme": "$(jstr "$POWER_SCHEME")",
     "make": "$MAKE_PRESENT",
     "prove": "$PROVE_PRESENT",
     "perl": "$PERL_PRESENT",
@@ -220,17 +268,29 @@ if ! cat > "$OUT" <<EOF
     "status": "$BENCH_STATUS",
     "reason": "$(jstr "$BENCH_REASON")",
     "buildCommand": "$(jstr "$CC $CFLAGS -o $BENCH_DIR/bench $REF/bench.c $REF/picohttpparser.c")",
-    "benchIterations": "$(jstr "$BENCH_ITERS")",
-    "benchSeconds": "$(jstr "$BENCH_SECS")"
+    "benchTrials": $BENCH_TRIALS,
+    "benchWarmupDiscarded": 1,
+    "benchIterations": $BENCH_ITERS,
+    "benchSecondsMean": $BENCH_MEAN,
+    "benchSecondsMin": $BENCH_MIN,
+    "benchNsPerParseMean": $BENCH_NSPP,
+    "benchRunsSeconds": $BENCH_RUNS,
+    "benchWarmupSeconds": $BENCH_WARM,
+    "benchCorpusFile": "reference/bench.c",
+    "benchCorpusSha256": "$(jstr "$BENCH_CORPUS_SHA")",
+    "benchScope": "request-parse happy path only: one fixed ~620B GET x10M (upstream marker, unmodified)",
+    "timer": "$(jstr "$TIMER_NAME")",
+    "timerGranularityNs": null,
+    "timerNote": "MSYS date; %N unit is 100ns, effective resolution unverified but immaterial: trial spread (~0.1s) dominates"
   },
   "upstreamTestSuite": {
     "status": "$TEST_STATUS",
     "reason": "$(jstr "$TEST_REASON")",
     "runner": "$(jstr "$TEST_RUNNER")",
     "sanitizers": "$(jstr "$TEST_SAN")",
-    "total": "$(jstr "$TEST_TOTAL")",
-    "passed": "$(jstr "$TEST_PASSED")",
-    "failed": "$(jstr "$TEST_FAILED")",
+    "total": ${TEST_TOTAL:-null},
+    "passed": ${TEST_PASSED:-null},
+    "failed": ${TEST_FAILED:-null},
     "skipped": "$(jstr "$TEST_SKIPPED")",
     "log": "results/upstream-tests.log (created only when the suite runs)"
   },
@@ -244,7 +304,7 @@ fi
 
 echo "Baseline written to $OUT"
 echo "  hashVerify: $HASH_VERIFY"
-echo "  cBaseline:  $BENCH_STATUS ${BENCH_REASON:+($BENCH_REASON)}${BENCH_SECS:+ - ${BENCH_SECS}s}"
+echo "  cBaseline:  $BENCH_STATUS ${BENCH_REASON:+($BENCH_REASON)}${BENCH_MEAN:+mean ${BENCH_MEAN}s over ${BENCH_TRIALS} trials}"
 echo "  testSuite:  $TEST_STATUS ${TEST_REASON:+($TEST_REASON)}"
 [ "$BENCH_STATUS" = "failed" ] || [ "$TEST_STATUS" = "failed" ] && exit 1
 exit 0

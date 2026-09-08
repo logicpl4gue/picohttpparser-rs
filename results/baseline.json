@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 2,
-  "generatedUtc": "2026-09-08T23:34:11Z",
+  "schemaVersion": 3,
+  "generatedUtc": "2026-09-08T23:48:07Z",
   "generatedBy": "scripts/run_baseline.sh",
   "pin": {
     "repository": "h2o/picohttpparser",
@@ -11,7 +11,7 @@
     "hashDetail": "picohttpparser.c: OK;picohttpparser.h: OK;test.c: OK;bench.c: OK;Makefile: OK;README.md: OK;picotest/picotest.c: OK;picotest/picotest.h: OK;"
   },
   "environment": {
-    "os_uname": "Windows_NT 10.0 x86_64",
+    "os_uname": "MINGW64_NT-10.0-26200 3.6.7-fb42d713.x86_64 x86_64",
     "git": "git version 2.54.0.windows.1",
     "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
     "cargo": "cargo 1.96.1 (356927216 2026-06-26)",
@@ -19,6 +19,9 @@
     "cc": "present",
     "ccPath": "/d/Tools/w64devkit/bin/gcc",
     "ccVersion": "gcc.exe (GCC) 16.2.0",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpuCount": "12",
+    "powerScheme": "Atlas Power Scheme",
     "make": "present",
     "prove": "missing",
     "perl": "present",
@@ -28,17 +31,29 @@
     "status": "passed",
     "reason": "",
     "buildCommand": "gcc -O2 -o /d/DevD2/LOGICPLAGUE/ForFun/rewrite1/target/c-baseline/bench /d/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/bench.c /d/DevD2/LOGICPLAGUE/ForFun/rewrite1/reference/picohttpparser.c",
-    "benchIterations": "10000000",
-    "benchSeconds": "2.099"
+    "benchTrials": 6,
+    "benchWarmupDiscarded": 1,
+    "benchIterations": 10000000,
+    "benchSecondsMean": 2.041,
+    "benchSecondsMin": 2.005,
+    "benchNsPerParseMean": 204.1,
+    "benchRunsSeconds": [2.069,2.005,2.031,2.037,2.038,2.068],
+    "benchWarmupSeconds": 2.090,
+    "benchCorpusFile": "reference/bench.c",
+    "benchCorpusSha256": "cf44504db5908792d4f7c6355a7a05ba80cf2411efb85995fc6e2933ec9feca7",
+    "benchScope": "request-parse happy path only: one fixed ~620B GET x10M (upstream marker, unmodified)",
+    "timer": "date +%s%N",
+    "timerGranularityNs": null,
+    "timerNote": "MSYS date; %N unit is 100ns, effective resolution unverified but immaterial: trial spread (~0.1s) dominates"
   },
   "upstreamTestSuite": {
     "status": "passed",
     "reason": "",
     "runner": "direct",
     "sanitizers": "unavailable",
-    "total": "8",
-    "passed": "8",
-    "failed": "0",
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
     "skipped": "",
     "log": "results/upstream-tests.log (created only when the suite runs)"
   },

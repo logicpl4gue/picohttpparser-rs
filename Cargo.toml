@@ -8,5 +8,36 @@ description = "Drop-in Rust rewrite of PicoHTTPParser — Milestone 1 ABI shell 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
+# Perf/codegen policy (adversarial audit 2026-09-09: P0-1/P1-1/P1-2/P2-1).
+# The shipped product is the cdylib/staticlib measured against the C -O2
+# anchor, so every codegen knob is pinned and recorded — never inherited.
+[profile.release]
+opt-level = 2          # match the immutable C baseline's -O2 (plan §13: same optimization level)
+codegen-units = 1      # full intra-crate inlining; the C side is one TU, and a staticlib
+                       # archive is final object code no consumer-side -flto can reopen
+lto = true             # whole-crate optimization at cdylib/staticlib link time (crate is tiny)
+# panic = "unwind" (default, kept): edition-2024 `extern "C"` is nounwind,
+# so a panic aborts instead of unwinding through the C ABI (no UB). M2 policy:
+# keep unwind + catch_unwind at the FFI seam mapping panic -> -1, and keep the
+# parser core panic-free (clippy denies below) so the wrapper is last resort.
+overflow-checks = false  # C-parity unsigned wrap (explicit, not inherited)
+debug-assertions = false # measurements must not include debug asserts
+
+[profile.bench]
+inherits = "release"
+lto = false            # anti-footgun: bench-profile LTO could constant-fold stub calls
+                       # with literal args into a ~0 ns/parse lie; bench the shipped shape
+# panic stays "unwind" here so a catch_unwind-based harness keeps working.
+
+[profile.dev]
+opt-level = 0
+overflow-checks = true   # dev/test asserts ON: panics here are good (loud bugs),
+debug-assertions = true  # but dev-profile numbers/crashes are NEVER evidence —
+                         # differential/fuzz/measurement runs use a release-shaped profile.
+
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"   # panic-free parser core: hostile input must return -1/-2, never panic
+expect_used = "deny"   # same reason; tests keep their asserts (assert!/assert_eq! are fine)

@@ -20,7 +20,8 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
   types, `#[repr(C)]` struct layout via compile-time asserts) but return `-1`
   (`0` for `_is_in_data`) — no parsing yet. Rust↔C mapping table in
   `docs/api.md`.
-- ✅ C baseline: upstream `bench` (10M iters, ~2.1s) and full upstream suite
+- ✅ C baseline: upstream `bench` (10M iters, **mean 2.041s / 204.1 ns/parse
+  over 6 trials** after 1 warmup, i5-12400F) and full upstream suite
   (**299 assertions, 8/8 subtests pass**) via `CC=gcc` (w64devkit, `D:/Tools`);
   `prove` absent so the TAP binary runs directly; sanitizers unavailable in
   this GCC (recorded in `results/baseline.json`, never fabricated).
