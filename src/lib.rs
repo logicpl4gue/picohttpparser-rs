@@ -15,11 +15,19 @@
 //!   `phr_decode_chunked`, `phr_decode_chunked_is_in_data`) as **stubs** that
 //!   pin names, calling convention, argument/return types, and struct layout
 //!   but return `-1` (`0` for `_is_in_data`) until real parsing lands.
-//! - ⏳ Milestone 2+ (request/response/headers/chunked parsers, differential
-//!   testing, fuzzing, benchmarks): not started.
+//! - ✅ Milestone 2 (request parser): safe zero-copy core (`core`,
+//!   `request`) behind the FFI seam; 43,372 differential cases vs the C
+//!   oracle with 0 mismatches (`scripts/diff_request.sh`).
+//! - ⏳ Milestone 3+ (response/headers/chunked parsers, fuzzing,
+//!   benchmarks): not started.
 
 #![warn(missing_docs)]
 
 pub mod ffi;
+
+/// Safe, allocation-free parsing core (offsets in, offsets out).
+mod core;
+/// Request-line parser (Milestone 2).
+mod request;
 
 pub use ffi::{PhrChunkedDecoder, PhrHeader};

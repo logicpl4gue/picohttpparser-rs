@@ -1,11 +1,12 @@
 //! C ABI surface of picohttpparser-rs (Milestone 1 shell).
 //!
 //! Signatures and struct layouts mirror `reference/picohttpparser.h` at pin
-//! `f4d94b48b31e0abae029ebeafcfd9ca0680ede58`. All five functions are
-//! **stubs**: they exist to pin the ABI (exported names, calling convention,
-//! argument/return types, struct layouts) and return failure until the real
-//! parsers land in Milestone 2+. Nothing here dereferences its arguments, so
-//! the stubs are safe to call with null pointers for ABI-smoke purposes.
+//! `f4d94b48b31e0abae029ebeafcfd9ca0680ede58`. `phr_parse_request` is a real
+//! parser (Milestone 2, via `crate::request`); the other four are still
+//! **stubs** that pin the ABI and return failure until Milestones 3+.
+//!
+//! This module is the crate's entire `unsafe` surface: the parsing core only
+//! reports offsets, and this seam turns them into output pointers.
 //!
 //! Panic policy (pinned before M2): keep `panic = "unwind"`, rely on
 //! edition-2024 `extern "C"` being nounwind (a panic aborts, never unwinds
@@ -18,14 +19,20 @@ use core::ffi::{c_char, c_int};
 /// Mirror of C `struct phr_header` (2 field pairs of pointer + length).
 ///
 /// `name == NULL` marks a continuation line of a multiline header (upstream
-/// contract). Layout is pinned by the compile-time assertions below and by
-/// `tests/abi.rs`.
+/// contract). Fields are public like any FFI struct: the core fills them
+/// through the FFI seam, and integration tests assert on them. Layout is
+/// pinned by the compile-time assertions below and by `tests/abi.rs`.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PhrHeader {
-    name: *const c_char,
-    name_len: usize,
-    value: *const c_char,
-    value_len: usize,
+    /// Header name, or NULL for a continuation line.
+    pub name: *const c_char,
+    /// Length of the name in bytes (0 with NULL).
+    pub name_len: usize,
+    /// Header value (leading space skipped, trailing space trimmed).
+    pub value: *const c_char,
+    /// Length of the value in bytes.
+    pub value_len: usize,
 }
 
 /// Mirror of C `struct phr_chunked_decoder` (caller-owned decoder state).
@@ -43,33 +50,178 @@ pub struct PhrChunkedDecoder {
     _total_overhead: u64,
 }
 
+/// [`HeaderSink`](crate::core::HeaderSink) writing straight into the
+/// caller's `phr_header` array.
+///
+/// Offsets from the core become pointers by adding the input base — the only
+/// pointer arithmetic in the crate, confined to this seam. Writes are
+/// two-phase (name, then value) and progressive (header `i` completes before
+/// `i + 1` starts), exactly like C filling the caller array — even the
+/// in-progress slot on error paths ends up byte-identical.
+struct RawSink {
+    base: *const c_char,
+    slots: *mut PhrHeader,
+    cap: usize,
+}
+
+impl crate::core::HeaderSink for RawSink {
+    fn capacity(&self) -> usize {
+        self.cap
+    }
+    /// SAFETY (both phases): `i < cap` is enforced by the core (`n == max`
+    /// errors before any write), `slots` points to `cap` writable entries
+    /// (checked at entry), and every offset lies inside the input buffer by
+    /// construction in the core. Unreachable with `len == 0`, so `base.add`
+    /// never runs on null.
+    fn set_name(&mut self, i: usize, name: Option<(usize, usize)>) {
+        unsafe {
+            let h = &mut *self.slots.add(i);
+            match name {
+                Some((off, len)) => {
+                    h.name = self.base.add(off);
+                    h.name_len = len;
+                }
+                None => {
+                    h.name = std::ptr::null();
+                    h.name_len = 0;
+                }
+            }
+        }
+    }
+    fn set_value(&mut self, i: usize, value: (usize, usize)) {
+        unsafe {
+            let h = &mut *self.slots.add(i);
+            h.value = self.base.add(value.0);
+            h.value_len = value.1;
+        }
+    }
+}
+
 /// Parses an HTTP request head.
 ///
 /// Returns bytes consumed (>= 0), `-2` for partial input, `-1` on failure.
-/// **Milestone 1 stub**: always returns `-1`; real parsing is added in
-/// Milestone 2. Argument names mirror the C parameter list in
-/// `reference/picohttpparser.h`.
+/// Behaviorally identical to C's `phr_parse_request` (Milestone 2), including
+/// the `last_len` streaming hint and zeroed outputs on every path.
+/// Argument names mirror the C parameter list in `reference/picohttpparser.h`.
 ///
 /// # Safety
 ///
-/// The stub does not dereference any argument. When real parsing lands, all
-/// pointers must be valid: `buf`/`len` describe the input buffer, `headers`
-/// must point to `*num_headers` entries, and the output pointers must point
-/// to writable storage.
+/// `buf`/`len` must describe a readable input buffer, `headers` must point
+/// to `*num_headers` writable entries, and the output pointers must point to
+/// writable storage. Null outputs (or a null input with `len != 0`) fail
+/// closed with `-1` instead of faulting. A panic anywhere inside maps to
+/// `-1` per the crate's pinned panic policy.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn phr_parse_request(
-    _buf: *const c_char,
-    _len: usize,
-    _method: *mut *const c_char,
-    _method_len: *mut usize,
-    _path: *mut *const c_char,
-    _path_len: *mut usize,
-    _minor_version: *mut c_int,
-    _headers: *mut PhrHeader,
-    _num_headers: *mut usize,
-    _last_len: usize,
+    buf: *const c_char,
+    len: usize,
+    method: *mut *const c_char,
+    method_len: *mut usize,
+    path: *mut *const c_char,
+    path_len: *mut usize,
+    minor_version: *mut c_int,
+    headers: *mut PhrHeader,
+    num_headers: *mut usize,
+    last_len: usize,
 ) -> c_int {
-    -1
+    // `match` (not `unwrap_or`) so the -1 mapping stays explicit; `unwrap_or`
+    // would also trip the crate's `clippy::unwrap_used` deny.
+    #[allow(clippy::manual_unwrap_or)]
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        parse_request_inner(
+            buf,
+            len,
+            method,
+            method_len,
+            path,
+            path_len,
+            minor_version,
+            headers,
+            num_headers,
+            last_len,
+        )
+    })) {
+        Ok(r) => r,
+        Err(_) => -1,
+    }
+}
+
+/// `phr_parse_request` minus the unwind guard. Plain function (not `extern`)
+/// so every raw-pointer operation needs an explicit `unsafe` block under the
+/// crate's `unsafe_op_in_unsafe_fn = "deny"` lint. Ten parameters mirror the
+/// C signature 1:1 by design (same order, same meaning), so bundling them
+/// would only obscure the ABI mapping.
+#[allow(clippy::too_many_arguments)]
+fn parse_request_inner(
+    buf: *const c_char,
+    len: usize,
+    method: *mut *const c_char,
+    method_len: *mut usize,
+    path: *mut *const c_char,
+    path_len: *mut usize,
+    minor_version: *mut c_int,
+    headers: *mut PhrHeader,
+    num_headers: *mut usize,
+    last_len: usize,
+) -> c_int {
+    if method.is_null()
+        || method_len.is_null()
+        || path.is_null()
+        || path_len.is_null()
+        || minor_version.is_null()
+        || num_headers.is_null()
+        || (len != 0 && buf.is_null())
+    {
+        return -1;
+    }
+    // SAFETY: outputs checked non-null above; zeroed first like C on entry.
+    unsafe {
+        *method = std::ptr::null();
+        *method_len = 0;
+        *path = std::ptr::null();
+        *path_len = 0;
+        *minor_version = -1;
+        let max = *num_headers;
+        *num_headers = 0;
+        if max != 0 && headers.is_null() {
+            return -1;
+        }
+        let data: &[u8] = if len == 0 {
+            &[]
+        } else {
+            // SAFETY: non-null (checked) + caller-guaranteed `len` bytes.
+            std::slice::from_raw_parts(buf as *const u8, len)
+        };
+        let mut sink = RawSink {
+            base: buf,
+            slots: headers,
+            cap: max,
+        };
+        // Progressive outputs, published on success AND error: C assigns
+        // *method/*path/*version as each scan completes (even empty scans),
+        // so a later failure still leaves the completed prefix observable.
+        let mut prog = crate::request::Progress::default();
+        let r = match crate::request::parse_request(data, &mut sink, last_len, &mut prog) {
+            Ok(consumed) => consumed as c_int,
+            Err(crate::core::Error::Partial) => -2,
+            Err(crate::core::Error::Malformed) => -1,
+        };
+        if let Some((off, len)) = prog.method {
+            // SAFETY: offsets lie inside the input by construction; an empty
+            // token still yields the (non-null) scan position, like C.
+            *method = buf.add(off);
+            *method_len = len;
+        }
+        if let Some((off, len)) = prog.path {
+            *path = buf.add(off);
+            *path_len = len;
+        }
+        if let Some(v) = prog.version {
+            *minor_version = v;
+        }
+        *num_headers = prog.headers;
+        r
+    }
 }
 
 /// Parses an HTTP response head.

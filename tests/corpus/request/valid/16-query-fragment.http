@@ -1,0 +1,2 @@
+GET /a?b=c&d=e#f HTTP/1.1
+

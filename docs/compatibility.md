@@ -17,7 +17,7 @@ Target: 100% of applicable upstream tests passing on the Rust replacement.
 
 | Date | Cases | Mismatches | Unresolved | Notes |
 |---|---|---|---|---|
-| *(none yet)* | — | — | — | Harness arrives with Milestone 2+ |
+| 2026-09-09 | 43,372 | 0 | 0 | Request parser. `scripts/diff_request.sh`: 57 corpus files × caps {0,1,2,3,5,16,64} × full + every prefix (streaming, `last_len` = prev len). Oracle = pinned C at `-O2` (renamed symbols); Rust = release cdylib (shipped artifact). Compared: ret, method, path, version, count, every name/value as pointer+length equality into the shared buffer, **including the in-progress header slot on error paths** (two-phase name/value mirror). Stored log: `results/difftest-request.log`. Repro: `CC=gcc bash scripts/diff_request.sh`. |
 
 ## Regression corpus (`tests/regression/`, `tests/compatibility/`, `tests/malformed/`)
 

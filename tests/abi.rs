@@ -1,8 +1,10 @@
-//! Milestone 1 ABI-shell integration tests.
+//! ABI-shell integration tests (Milestone 1; updated Milestone 2).
 //!
-//! The stubs never dereference their arguments, so calling them with null
-//! pointers is safe here; real parsing (which reads/writes buffers) lands in
-//! Milestone 2+ and brings buffer-backed tests.
+//! Layout pins plus fail-closed entry guards. `phr_parse_request` is a real
+//! parser since M2, but these all-null calls exercise only its null-pointer
+//! guards (which return -1 without touching memory) — if those guards ever
+//! regress, this test segfaults loudly instead of failing quietly, and
+//! that is the point.
 
 use picohttpparser_rs::{PhrChunkedDecoder, PhrHeader};
 use std::mem::{align_of, size_of};
@@ -21,7 +23,7 @@ fn layouts_match_c_on_64_bit() {
 }
 
 #[test]
-fn stub_phr_parse_request_returns_error() {
+fn request_null_guards_return_error() {
     let ret = unsafe {
         picohttpparser_rs::ffi::phr_parse_request(
             null(),

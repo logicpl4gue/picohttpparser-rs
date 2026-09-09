@@ -1,6 +1,11 @@
 # Keep the pinned C oracle byte-identical on every platform:
 # core.autocrlf must never touch reference/.
 reference/** -text
+# Corpus inputs are behavioral fixtures: a lone-LF file converted to CRLF
+# would silently become a different test case.
+tests/corpus/** -text
+# Generated evidence logs stay LF-stable.
+results/*.log -text
 
 # Scripts and sources always check out with LF.
 *.sh text eol=lf
