@@ -361,6 +361,16 @@ deliverable.
 - Value-scan batching (8-at-a-time, C-mirror): A/B-tested, measured ~6%
   SLOWER, reverted — LLVM already unrolls the plain loop; manual batching
   added only scaffolding. Do not retry without a new hypothesis.
+- Loop-shape mirror E3 (`parse_token` + `get_token_to_eol` tail to C order:
+  classify-first, bounds test at loop bottom, one hoisted pre-check):
+  A/B-tested same-session with pre/post alternation, REVERTED — typical
+  improved twice (-0.060/-0.070) and tiny once (-0.078), but response
+  regressed twice (+0.047/+0.086), failing the pre-set acceptance (typical
+  AND response ≥0.02). No mechanism can make the touched functions
+  response-specific (both paths share them), so the split verdict reads as
+  alignment/session noise either way — and noise is not a basis to keep.
+  Cage stayed green throughout (behavior-identical). Do not retry without
+  a profiler and better isolation.
 - Token table (`TOKEN_CHAR` static LUT): A/B-tested, measured ~−11%
   whole-parse, kept — proven by the differential gates (132,964 at decision time; 133,352 on the current re-run) + full suite.
 - SWAR 8-byte prescan in `get_token_to_eol` (safe, filter-only, soundness
@@ -383,8 +393,12 @@ deliverable.
   Verdict: the Rust-side O3 regression is REAL (session-confound H1 disproven
   for Rust; the 3.39x ratio-vs-C framing mixes in C-side session drift).
   Cause still open: the only codegen delta is the SSE2 null-guard chain
-  (bounded +0.4–0.5s of the +1.77s gap); next probes are the guard-helper
-  A/B (P3) and caller-side controls. Side-tier only; never headline material. The native row quantifies the SIMD prize and the anchor rule
+  (bounded +0.4–0.5s of the +1.77s gap). P3 guard-helper A/B (null chain
+  moved to an `#[inline(never)]` helper, same-session O3 malformed):
+  4.38s → 5.20s (WORSE by ~19%, reverted) — the extra call costs ~2 ns
+  on this path, dwarfing any chain-shortening gain; outlining the entry
+  is dead as a fix direction. Remaining probe is caller-side controls.
+  Side-tier only; never headline material. The native row quantifies the SIMD prize and the anchor rule
   stands: never mix native-C into headline claims.
 - Chunked locals + single epilogue (`decode_chunked` restructure): KEPT on
   structural grounds with honest numbers — chunked row moved 1.7136 →
