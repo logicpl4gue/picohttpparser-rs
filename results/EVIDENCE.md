@@ -38,14 +38,14 @@ via shared C harness, 7 trials, trial 0 discarded.
 
 | Row | Rust/C | Stability | Primary record |
 |---|---|---|---|
-| Anchor (upstream ~620 B REQ) | **0.8550** | OK | `results/bench-compare.json` |
-| tiny | 1.4149 | OK | same file |
-| typical | 1.1059 | CHECK | same file |
-| large | **0.6416** (Rust faster; was 0.8166 pre SWAR-16B) | CHECK | same file |
-| response | 1.2473 | CHECK | same file |
-| chunked | 1.2242 (EXP-1 record 1.1853; delta inside drift band, untouched path) | OK | same file |
-| malformed (reject path) | 1.9653 | CHECK | same file |
-| streaming (incremental) | 1.0367 | CHECK | same file |
+| Anchor (upstream ~620 B REQ) | **0.8267** | CHECK-spread>5% | `results/bench-compare.json` |
+| tiny | 1.4816 | CHECK | same file |
+| typical | 1.1003 | CHECK | same file |
+| large | **0.6803** (Rust faster) | CHECK | same file |
+| response | 1.1849 | CHECK | same file |
+| chunked | 1.1991 | OK | same file |
+| malformed (reject path) | 1.8112 | CHECK | same file |
+| streaming (incremental) | 1.0231 | OK | same file |
 | O3-pair anchor (labeled tier) | 0.9502 | CHECK | `results/bench-compare-o3.json` |
 | O3 malformed anomaly | **3.3907 tier record; P1 same-session control: Rust-side O3/O2 = 1.68x REAL** (identical harness; C drifted the other way) — cause open, guard A/B queued | OK | same file + `docs/methodology.md` |
 | Native pair (labeled tier, historical) | 1.4499 — C pcmpestri leaps, Rust scalar+SWAR flat; the SIMD prize quantified | — | `results/bench-compare-native.json` |

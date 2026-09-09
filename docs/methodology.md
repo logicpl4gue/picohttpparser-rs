@@ -384,7 +384,8 @@ deliverable.
   `get(p..p+16)` + two `has_outside_printable` halves, dirty-half fallback
   (lo-dirty resumes exact loop at `p`, hi-dirty at `p+8`, tails stay short).
   Same-session A/B: large 0.8147 → 0.6623, anchor 0.9742 → 0.8521; full
-  suite confirms large **0.6416**, anchor **0.8550 (stability OK)**.
+  suite confirms large **0.6416**, anchor **0.8550 (stability OK)**
+  (fresh re-run at push time: large 0.6803, anchor 0.8267 — same story).
   KEPT — cage fully green (133,352 differential, fuzz, 7/7 suites, silent
   clippy), no new proof needed (`swar_filter_sound` stands per half).
   Untouched-path drift check (chunked +0.039, malformed +0.018 same night)
@@ -394,7 +395,8 @@ deliverable.
   inlined (no symbols emitted) and `parse_headers` contains zero panic
   call sites, so both changes would be proven no-ops. Verified, not assumed.
 - Labeled tiers (same-session runs, `results/bench-compare-*.json`): anchor
-  **0.9746**, O3-pair **0.9502** (both sides faster than their O2 selves, gap steady), native-pair
+  **0.8267** (0.9746/0.8550 on earlier runs — machine drift, same conclusion),
+  O3-pair **0.9502** (both sides faster than their O2 selves, gap steady), native-pair
   **1.4499** (C `-march=native` unlocks its pcmpestri path: 2.10s → 1.38s;
   Rust scalar+SWAR barely moves). O3-malformed anomaly, same-session control
   2026-09-09 (P1): identical `-O2` harness, O2 dll vs `-C opt-level=3` dll —

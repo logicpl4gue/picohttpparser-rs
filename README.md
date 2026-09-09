@@ -48,14 +48,14 @@ same process. Ratio = Rust/C; **below 1.00 means Rust is faster.**
 
 | Corpus | Rust/C | Reading |
 |---|---|---|
-| Upstream marker (~620 B request, 11 headers) | **0.855** | Rust ~15% faster · `stability: OK` |
-| Large headers (~4.9 KB, 64 × 64 B values) | **0.642** | Rust ~36% faster |
-| Typical request (~400 B, 9 headers) | 1.106 | within 11% |
-| Streaming (8 staged prefix parses) | 1.037 | near parity |
-| Response (~150 B) | 1.247 | loss, published |
-| Chunked decode (38 B, 3 chunks) | 1.224 | loss, published |
-| Tiny request (37 B) | 1.415 | fixed-cost floor |
-| Malformed (reject at byte 1) | 1.965 | fixed-cost floor |
+| Upstream marker (~620 B request, 11 headers) | **0.827** | Rust ~17% faster · `stability: CHECK` |
+| Large headers (~4.9 KB, 64 × 64 B values) | **0.680** | Rust ~32% faster |
+| Typical request (~400 B, 9 headers) | 1.100 | within 10% |
+| Streaming (8 staged prefix parses) | 1.023 | near parity |
+| Response (~150 B) | 1.185 | loss, published |
+| Chunked decode (38 B, 3 chunks) | 1.199 | loss, published |
+| Tiny request (37 B) | 1.482 | fixed-cost floor |
+| Malformed (reject at byte 1) | 1.811 | fixed-cost floor |
 
 Reproducible via `scripts/bench_compare.sh`. Raw trials, spread flags, and
 the honest limits (no CPU pinning; whole-loop timer only; per-category
