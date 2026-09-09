@@ -161,13 +161,53 @@ pub(crate) fn parse_token(
 /// semantics). HTAB and bytes >= 0x80 are legal in values; other controls
 /// and DEL end the token and must be followed by CRLF/LF. Returns
 /// `((offset, len_without_line_break), pos_past_line_break)`.
+/// SWAR constants for [`prescan_printable`]: one per lane.
+const SWAR_LO: u64 = 0x0101_0101_0101_0101;
+const SWAR_HI: u64 = 0x8080_8080_8080_8080;
+
+/// True iff any of the 8 lanes holds a byte outside `0x20..=0x7E`.
+///
+/// Pure filter: false positives (clean block flagged) only cost a fallback
+/// to the exact loop; false negatives would skip real decisions, so the
+/// property `clean-result ⟹ every byte in range` is pinned by
+/// `swar_filter_sound` below over all 65,536 two-byte combinations plus
+/// carry-cascade shapes (`0xFF`/`0xFE` runs adjacent to boundary bytes).
+#[inline]
+fn has_outside_printable(x: u64) -> bool {
+    // hasless(x, 0x20): lanes holding bytes < 0x20 (& and | cannot
+    // overflow, so plain operators are correct here).
+    let less = (x.wrapping_sub(SWAR_LO.wrapping_mul(0x20)) & !x) & SWAR_HI;
+    // Lanes holding bytes > 0x7E. Carry from a saturated low lane can only
+    // *set* flags (flagging a clean neighbor), never clear a real one, so
+    // this side is sound in the filter direction by construction.
+    let more = (x.wrapping_add(SWAR_LO.wrapping_mul(127 - 0x7e)) | x) & SWAR_HI;
+    less | more != 0
+}
+
 pub(crate) fn get_token_to_eol(buf: &[u8], pos: usize) -> Result<((usize, usize), usize), Error> {
     let start = pos;
     let mut p = pos;
-    // NOTE (A/B-tested 2026-09-09): an 8-at-a-time batched fast path mirroring
-    // C's DOIT unroll measured ~6% SLOWER (ratio 1.73 -> 1.86) — LLVM already
-    // unrolls/versions the plain loop itself, and manual batching only added
-    // scaffolding. Kept simple; see results/bench-compare.json history.
+    // NOTE (A/B-tested 2026-09-09): a plain 8-at-a-time bounds-amortizing
+    // batch measured ~6% SLOWER (ratio 1.73 -> 1.86) — LLVM already unrolls
+    // the plain loop, so amortization alone only added scaffolding. The SWAR
+    // prescan below is a different mechanism (fewer classification branches
+    // per byte, not fewer bounds checks); keep or revert per
+    // results/bench-compare.json, never on theory.
+    //
+    // Prescan: skip 8-byte blocks proven free of line breaks and controls.
+    // Filter-only: any block outside `0x20..=0x7E` (HTAB, CR/LF, DEL,
+    // controls, bytes >= 0x80 — all legal-or-decided in values) falls through
+    // to the exact byte loop, which makes the real decision. Windowed with
+    // `get`, so no read ever passes `len` (guard-page safe).
+    while let Some(w) = buf.get(p..p + 8) {
+        let Ok(a) = <&[u8; 8]>::try_from(w) else {
+            break; // unreachable: the range above is exactly 8 long
+        };
+        if has_outside_printable(u64::from_le_bytes(*a)) {
+            break;
+        }
+        p += 8;
+    }
     loop {
         let b = *buf.get(p).ok_or(Error::Partial)?;
         if !is_printable_ascii(b) && ((b < 0x20 && b != b'\t') || b == 0x7f) {
@@ -271,4 +311,49 @@ pub(crate) fn parse_headers<S: HeaderSink>(
         *count = n;
     }
     Ok(pos)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_outside_printable;
+
+    fn clean(b: u8) -> bool {
+        (0x20..=0x7e).contains(&b)
+    }
+
+    /// Filter soundness: a "clean" verdict must never skip a byte outside
+    /// `0x20..=0x7E`. Exhaustive over all two-byte pairs in lanes 0–1 (SWAR
+    /// carry flows low→high only, so pairs cover every interaction), plus
+    /// full-width cascade shapes. False *positives* are legal (fallback).
+    #[test]
+    fn swar_filter_sound() {
+        for a in 0..=255u32 {
+            for b in 0..=255u32 {
+                let x = (a | (b << 8)) as u64; // lanes 2-7 are 0x00 (dirty)
+                if a == 0 && b == 0 {
+                    continue; // lanes 0-1 are 0x00: dirty by rule, skip assert
+                }
+                if !has_outside_printable(x) {
+                    assert!(clean(a as u8) && clean(b as u8), "a={a} b={b}");
+                }
+            }
+        }
+        // Full-width carry cascades: saturated lanes beside boundary bytes.
+        for lanes in [
+            [0xffu8; 8],
+            [0xfeu8; 8],
+            [0xff, 0x7e, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41],
+            [0x7e, 0xff, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41],
+            [0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0xff, 0x7e],
+            [0x20, 0x7e, 0x09, 0x7f, 0x0d, 0x0a, 0x80, 0xff],
+        ] {
+            let x = u64::from_le_bytes(lanes);
+            if !has_outside_printable(x) {
+                assert!(lanes.iter().all(|&b| clean(b)), "{lanes:?}");
+            }
+        }
+        // All-clean blocks must skip.
+        assert!(!has_outside_printable(u64::from_le_bytes([0x41; 8])));
+        assert!(!has_outside_printable(u64::from_le_bytes(*b"GET /HT ")));
+    }
 }

@@ -49,4 +49,7 @@ Same-session C-vs-Rust record from `scripts/bench_compare.sh`: `rev`,
 {`buildCommand`, `ccVersion`, trials, mean/min}, `rust` {artifact path +
 sha256, rustc, pinned profile flags, trials, mean/min}, `ratioRustOverC_mean`,
 `stability` (`OK` or `CHECK` with reason), `corpus` {file = bench.c REQ
-macro included verbatim, sha, scope, iterations}.
+macro included verbatim, sha, scope, iterations}, plus `tier` (`anchor` by
+default). Labeled P8 tiers live beside it (`bench-compare-o3.json`,
+`bench-compare-native.json`, via `C_OPT`/`RUSTFLAGS`/`TIER`/`JSON_OUT` env
+on the same script) — the anchor file is never overwritten by a tier run.

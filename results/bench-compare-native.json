@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedUtc": "2026-09-09T01:49:16Z",
+  "generatedUtc": "2026-09-09T01:46:05Z",
   "rev": "935b176-dirty",
   "status": "internal-engineering-number (Phase-0 measurement, not a publication claim)",
   "machine": {
@@ -13,23 +13,23 @@
   },
   "protocol": "7 trials interleaved C,R/R,C; trial 0 discarded as warmup; 10M iters/trial; per-iteration ret==len check both sides",
   "c": {
-    "buildCommand": "gcc -O2 (-Dmain=bench_c_main -Dphr_parse_request=c_phr_parse_request via bench_compare.c include of reference/bench.c) + renamed oracle object",
+    "buildCommand": "gcc -O3 -march=native (-Dmain=bench_c_main -Dphr_parse_request=c_phr_parse_request via bench_compare.c include of reference/bench.c) + renamed oracle object",
     "ccVersion": "gcc.exe (GCC) 16.2.0",
-    "trialsNs": [2065733400,2061696500,2036724900,2024571900,2016536900,2009323900],
-    "meanNs": 2035764583.3,
-    "minNs": 2009323900
+    "trialsNs": [1373835600,1358879600,1378068300,1388474900,1386747200,1381597500],
+    "meanNs": 1377933850.0,
+    "minNs": 1358879600
   },
   "rust": {
     "artifact": "target/release/picohttpparser_rs.dll",
-    "artifactSha256": "9a3e34d136d86ffe92c3bebfaa5e44dd189b4cfa7733f13ee3f1c05e420f75f3",
+    "artifactSha256": "0c84486e8bd165898f622b72620b19359ca537c67beebfb4dba63d5662235e4b",
     "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
-    "profile": "pinned(opt-level=2,CGU1,LTO,overflow-off,debug-off,unwind)",
-    "tier": "anchor",
-    "trialsNs": [1993333600,1970614200,2015777200,1995332500,2023603700,2004548800],
-    "meanNs": 2000535000.0,
-    "minNs": 1970614200
+    "profile": "pinned(opt-level=2,CGU1,LTO,overflow-off,debug-off,unwind) PLUS RUSTFLAGS=-C target-cpu=native",
+    "tier": "native",
+    "trialsNs": [1986616700,1982876600,1993139500,2001464700,2016104300,2007154000],
+    "meanNs": 1997892633.3,
+    "minNs": 1982876600
   },
-  "ratioRustOverC_mean": 0.9827,
+  "ratioRustOverC_mean": 1.4499,
   "stability": "OK",
   "corpus": {
     "file": "reference/bench.c REQ macro (included verbatim, zero drift by construction)",

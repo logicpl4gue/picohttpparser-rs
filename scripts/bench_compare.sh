@@ -8,7 +8,8 @@
 # instead of a silent bias. Corpus comes verbatim from reference/bench.c
 # (included by the harness source — zero drift by construction).
 #
-# Output: results/bench-compare.json (schema v1, this file's own versioning).
+# Output: results/bench-compare.json (schema v1, this file's own versioning),
+# or $JSON_OUT for labeled P8 tiers (anchor file is never overwritten).
 # These are INTERNAL engineering numbers (Phase-0 measurement), labeled with
 # machine identity and artifact hashes — not publication claims.
 set -u
@@ -17,8 +18,16 @@ set -o pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REF="$ROOT/reference"
 OUT="$ROOT/target/bench-compare"
-JSON="$ROOT/results/bench-compare.json"
+JSON="${JSON_OUT:-$ROOT/results/bench-compare.json}"
 CC="${CC:-gcc}"
+# Labeled tiers (P8): C_OPT/RUSTFLAGS/TIER override NOTHING by default — the
+# pinned anchor (C -O2 vs release profile) is what CI and the gate use.
+# A tier run sets all three, e.g.:
+#   C_OPT=-O3 RUSTFLAGS="-C opt-level=3" TIER=o3 \
+#     JSON_OUT=results/bench-compare-o3.json bash scripts/bench_compare.sh
+# cargo picks $RUSTFLAGS up automatically; the recorded profile reflects it.
+C_OPT="${C_OPT:--O2}"
+TIER="${TIER:-anchor}"
 
 mkdir -p "$OUT"
 
@@ -28,7 +37,7 @@ echo "== cargo build --release (Rust cdylib under test)"
 (cd "$ROOT" && cargo build --release) || exit 1
 
 echo "== compile C oracle (renamed symbols)"
-$CC -O2 -Wall \
+$CC $C_OPT -Wall \
   -Dphr_parse_request=c_phr_parse_request \
   -Dphr_parse_response=c_phr_parse_response \
   -Dphr_parse_headers=c_phr_parse_headers \
@@ -37,7 +46,7 @@ $CC -O2 -Wall \
   -c "$REF/picohttpparser.c" -o "$OUT/oracle.o" || exit 1
 
 echo "== link comparison binary (cdylib import lib: the shipped artifact)"
-$CC -O2 -Wall -I"$REF" "$ROOT/scripts/bench_compare.c" "$OUT/oracle.o" \
+$CC $C_OPT -Wall -I"$REF" "$ROOT/scripts/bench_compare.c" "$OUT/oracle.o" \
   "$ROOT/target/release/picohttpparser_rs.dll.lib" -o "$OUT/bench_compare" || exit 1
 cp "$ROOT/target/release/picohttpparser_rs.dll" "$OUT/"
 
@@ -97,7 +106,7 @@ cat > "$JSON" <<EOF
   },
   "protocol": "7 trials interleaved C,R/R,C; trial 0 discarded as warmup; 10M iters/trial; per-iteration ret==len check both sides",
   "c": {
-    "buildCommand": "$(jstr "$CC -O2 (-Dmain=bench_c_main -Dphr_parse_request=c_phr_parse_request via bench_compare.c include of reference/bench.c) + renamed oracle object")",
+    "buildCommand": "$(jstr "$CC $C_OPT (-Dmain=bench_c_main -Dphr_parse_request=c_phr_parse_request via bench_compare.c include of reference/bench.c) + renamed oracle object")",
     "ccVersion": "$(jstr "$CC_V")",
     "trialsNs": [$C_RUNS],
     "meanNs": $cmean,
@@ -107,7 +116,8 @@ cat > "$JSON" <<EOF
     "artifact": "target/release/picohttpparser_rs.dll",
     "artifactSha256": "$(jstr "$DLL_SHA")",
     "rustc": "$(jstr "$RUSTC_V")",
-    "profile": "opt-level=2,codegen-units=1,lto=true,overflow-checks=false,debug-assertions=false,panic=unwind (Cargo.toml pins)",
+    "profile": "pinned(opt-level=2,CGU1,LTO,overflow-off,debug-off,unwind)${RUSTFLAGS:+ PLUS RUSTFLAGS=$RUSTFLAGS}",
+    "tier": "$(jstr "$TIER")",
     "trialsNs": [$R_RUNS],
     "meanNs": $rmean,
     "minNs": $rmin

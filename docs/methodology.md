@@ -183,7 +183,30 @@ included verbatim from `reference/bench.c`, results in
   added only scaffolding. Do not retry without a new hypothesis.
 - Token table (`TOKEN_CHAR` static LUT): A/B-tested, measured ~−11%
   whole-parse, kept — proven by 132,964 differential cases + full suite.
-- SIMD skip-scanning, PGO, AVX2 tiers, `memchr` dependency: deferred. SIMD
+- SWAR 8-byte prescan in `get_token_to_eol` (safe, filter-only, soundness
+  proven by exhaustive `swar_filter_sound` unit test over all 65,536 byte
+  pairs): A/B-tested, ratio 1.52 → **0.98** (Rust 200.1ns vs C 203.6ns on
+  the anchor; 0.97 on the prior run — sub-1.0 twice, spreads ~3%), kept —
+  proven by the same gates. First sub-1.0 headline; still an internal
+  number, not a publication claim (single corpus).
+- `rtrim` rewrite and `#[inline]` attributes: REJECTED after disassembly
+  evidence — `parse_token`/`get_token_to_eol`/`rtrim` are already fully
+  inlined (no symbols emitted) and `parse_headers` contains zero panic
+  call sites, so both changes would be proven no-ops. Verified, not assumed.
+- Labeled tiers (same-session runs, `results/bench-compare-*.json`): anchor
+  **0.97**, O3-pair **1.02** (both sides faster, gap steady), native-pair
+  **1.45** (C `-march=native` unlocks its pcmpestri path: 2.10s → 1.38s;
+  Rust scalar+SWAR barely moves). The native row quantifies the SIMD prize
+  and the anchor rule stands: never mix native-C into headline claims.
+- Staticlib benchmarking stays infeasible on this toolchain (MinGW ld
+  rejects the MSVC EH residue — re-probed, still fails), so every Rust
+  number includes the cdylib IAT hop. Disclosed, not hidden; Rust callers
+  would use the rlib (cross-crate inlining) and see a different number.
+- Chunked locals/`unreachable!` rework, `Progress` direct publication,
+  PGO, AVX2 tiers: deferred — the first two are unmeasurable with current
+  tooling (no chunked bench shape; SROA question unresolved either way) and
+  the rest need numbers that do not exist yet.
+- SIMD skip-scanning (`std::arch`), `memchr` dependency: deferred. SIMD
   needs differential fuzz before shipping `unsafe` into the hot path;
   `memchr` solves single-byte search, not accept-set classification;
   struct layouts are ABI-frozen and not optimizable.
