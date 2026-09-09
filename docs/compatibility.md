@@ -34,7 +34,7 @@ Target: 100% of applicable upstream tests passing on the Rust replacement.
 | Differential, chunked | 3,698 cases, 0 mismatches | `results/difftest-chunked.log` |
 | Known divergences unresolved | 0 (4 rows, all INTENTIONAL fail-closed hardenings) | `docs/divergences.md` |
 
-Total: 132,964 differential cases + 299 upstream assertions × 2 targets,
+Total: 133,352 differential cases + 299 upstream assertions × 2 targets,
 zero failures, zero unresolved divergences. Optimization (plan M8+) may
 begin: behavior is pinned.
 

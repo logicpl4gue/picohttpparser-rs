@@ -41,21 +41,21 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
   `results/difftest-response.log`); unit vectors in `tests/response.rs`;
   corpus in `tests/corpus/response/` (34 files).
 - ✅ Milestone 4 (standalone header parser): `phr_parse_headers` wired to
-  the shared core; 21,728 differential cases vs C with 0 mismatches
+  the shared core; 21,924 differential cases vs C with 0 mismatches
   (`CC=gcc bash scripts/diff_headers.sh`, log in
   `results/difftest-headers.log`); unit vectors in `tests/headers.rs`;
-  corpus in `tests/corpus/headers/` (31 files).
+  corpus in `tests/corpus/headers/` (32 files).
 - ✅ Milestone 5 (chunked decoder): stateful in-place `chunked` core with
-  full decoder-state lockstep; 3,506 differential cases vs C with 0
+  full decoder-state lockstep; 3,698 differential cases vs C with 0
   mismatches (`CC=gcc bash scripts/diff_chunked.sh`, log in
   `results/difftest-chunked.log`); unit vectors in `tests/chunked.rs`;
-  corpus in `tests/corpus/chunked/` (31 files, incl. 1 MB chunk, overhead
+  corpus in `tests/corpus/chunked/` (32 files, incl. 1 MB chunk, overhead
   bomb + exact rule-boundary pairs).
 - ✅ Milestone 6 = plan M5, Compatibility Gate: **PASSED**. Unmodified
   upstream `test.c` linked against the release cdylib: 8/8 subtests, 299
   assertions, 0 failures (`results/upstream-rust.log`, via
   `CC=gcc bash scripts/run_baseline.sh`). All four differential harnesses
-  re-run fresh the same day: 132,964 cases, 0 mismatches. Divergences: 0
+  re-run fresh the same day: 133,352 cases, 0 mismatches. Divergences: 0
   unresolved (4 INTENTIONAL fail-closed rows). Details in
   `docs/compatibility.md`.
 - ✅ Milestone 7 (fuzz campaign, plan M6): deterministic differential
@@ -99,9 +99,9 @@ cargo test             # tests/abi.rs (layout + entry guards) + tests/request.rs
                        # tests/response.rs + tests/headers.rs + tests/chunked.rs
                        # (parser vectors)
 CC=gcc bash scripts/diff_headers.sh    # Layer-2 differential, header blocks,
-                                       # 21,728 cases, tees results/difftest-headers.log
+                                       # 21,924 cases, tees results/difftest-headers.log
 CC=gcc bash scripts/diff_chunked.sh    # Layer-2 differential, chunked decoder,
-                                       # 3,506 cases, tees results/difftest-chunked.log
+                                       # 3,698 cases, tees results/difftest-chunked.log
 CC=gcc bash scripts/diff_request.sh   # Layer-2 differential: C oracle vs release cdylib,
                                        # 87,052 cases, tees results/difftest-request.log
 CC=gcc bash scripts/diff_response.sh  # same for responses, 20,678 cases

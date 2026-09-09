@@ -362,7 +362,7 @@ deliverable.
   SLOWER, reverted — LLVM already unrolls the plain loop; manual batching
   added only scaffolding. Do not retry without a new hypothesis.
 - Token table (`TOKEN_CHAR` static LUT): A/B-tested, measured ~−11%
-  whole-parse, kept — proven by 132,964 differential cases + full suite.
+  whole-parse, kept — proven by the differential gates (132,964 at decision time; 133,352 on the current re-run) + full suite.
 - SWAR 8-byte prescan in `get_token_to_eol` (safe, filter-only, soundness
   proven by exhaustive `swar_filter_sound` unit test over all 65,536 byte
   pairs): A/B-tested at decision time, ratio 1.52 → 0.98 (0.97 on the
@@ -375,30 +375,27 @@ deliverable.
   inlined (no symbols emitted) and `parse_headers` contains zero panic
   call sites, so both changes would be proven no-ops. Verified, not assumed.
 - Labeled tiers (same-session runs, `results/bench-compare-*.json`): anchor
-  **0.9469**, O3-pair **0.9888** (both sides faster, gap steady), native-pair
+  **0.9906**, O3-pair **0.9502** (both sides faster than their O2 selves, gap steady), native-pair
   **1.4499** (C `-march=native` unlocks its pcmpestri path: 2.10s → 1.38s;
-  Rust scalar+SWAR barely moves). O3-malformed anomaly (Rust malformed
-  ~4.7s at O3 vs ~2.7-3.5s at O2) independently replicated
-  post-restructure — real, unexplained, side-tier only; never headline
-  material. The native row quantifies the SIMD prize and the anchor rule
+  Rust scalar+SWAR barely moves). O3-malformed anomaly re-probed 2026-09-09
+  on current code: malformed row 3.39x at O3 (C ~1.26s vs Rust ~4.27s, both
+  sides tight across 6 trials — a real codegen effect, not noise) vs 1.79x
+  at O2. Replicated twice post-restructure, still unexplained, side-tier
+  only; never headline material. The native row quantifies the SIMD prize and the anchor rule
   stands: never mix native-C into headline claims.
 - Chunked locals + single epilogue (`decode_chunked` restructure): KEPT on
   structural grounds with honest numbers — chunked row moved 1.7136 →
   1.6741 → 1.7054 across runs (directionally faster, inside the ±5% noise
   band, so no perf win is claimed). What it provably removes: 11 outlined
   `finish` calls (relocation-verified) and per-transition decoder-memory
-  round-trips; what remains identical is proven by 3,506-case struct-memcmp
-  differential + full suite. Rationale for keeping a sub-noise change: it
+  round-trips; what remains identical is proven by struct-memcmp differential (3,506 cases at decision time; re-verified at 3,698 on the current re-run) + full suite. Rationale for keeping a sub-noise change: it
   deletes code paths (one writeback site instead of decentralised stores)
   rather than adding cleverness.
 - Staticlib benchmarking stays infeasible on this toolchain (MinGW ld
   rejects the MSVC EH residue — re-probed, still fails), so every Rust
   number includes the cdylib IAT hop. Disclosed, not hidden; Rust callers
   would use the rlib (cross-crate inlining) and see a different number.
-- Chunked locals/`unreachable!` rework, `Progress` direct publication,
-  PGO, AVX2 tiers: deferred — the first two are unmeasurable with current
-  tooling (no chunked bench shape; SROA question unresolved either way) and
-  the rest need numbers that do not exist yet.
+- Chunked follow-ups (`unreachable!` rework, `Progress` direct publication), PGO, AVX2 tiers: re-decided 2026-09-09 — the `no chunked bench shape` premise is stale (live 60M-iter chunked row in `bench-compare.json`); chunked items stay parked behind profile evidence, not infra. PGO's blocker (`needs numbers that do not exist yet`) is lifted by the live 8-row suite — attempted 2026-09-09 as a labeled-pair experiment: **SKIPPED with reason** (rustc `-Cprofile-use` needs `llvm-profdata`-merged profiles; no `llvm-profdata` on this machine and `C:` is 100% full so `llvm-tools-preview` cannot install; a C-only PGO run would break the paired-tier contract). Unblock: free ~500 MB on `C:` or move `RUSTUP_HOME`/`CARGO_HOME` to `D:` and retry — procedure in the worker handoff stands. AVX2/native stays answered by the existing native pair.
 - SIMD skip-scanning (`std::arch`), `memchr` dependency: deferred. SIMD
   needs differential fuzz before shipping `unsafe` into the hot path;
   `memchr` solves single-byte search, not accept-set classification;
