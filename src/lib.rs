@@ -33,7 +33,8 @@
 //!   differential executions, 0 mismatches, 0 crashes (`docs/fuzzing.md`).
 //! - ✅ Milestone 9 (benchmarks, plan M8): 7-category C-vs-Rust suite
 //!   (`scripts/bench_compare.sh`, `results/bench-compare.json`).
-//! - ⏳ Milestone 8 (plan M7): H2O integration — not started.
+//! - ◐ Milestone 8 (plan M7): H2O-equivalent loopback proof **PASSED**
+//!   (`results/integration.log`); genuine-consumer step still open.
 
 #![warn(missing_docs)]
 

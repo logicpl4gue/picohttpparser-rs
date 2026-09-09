@@ -8,7 +8,7 @@ The original is treated as a **behavioral oracle**: we verify by differential
 testing, fuzzing, and the upstream test suite — and we publish losses as well
 as wins. See `picohttpparser-rs-plan.md` for the full project plan.
 
-## Status — Milestone 6 (compatibility gate PASSED)
+## Status — Milestones 0–7 & 9 complete; M8 (plan M7) partial
 
 > Numbering note: `picohttpparser-rs-plan.md` defines Milestone 3 as
 > "Responses + Headers"; the repo implemented it as two milestones
@@ -65,7 +65,11 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
   C-vs-Rust suite, 7/7 plan §11 categories with per-corpus ratios
   (`CC=gcc bash scripts/bench_compare.sh`; numbers + procedure in
   `docs/methodology.md`, raw data in `results/bench-compare.json`).
-- ⏳ Milestone 8 (plan M7): H2O integration — not started.
+- ◐ Milestone 8 (plan M7): H2O-equivalent loopback proof **PASSED** —
+  self-authored HTTP/1.1 consumer relinked unchanged against the Rust
+  cdylib with byte-identical transcripts + Python ctypes second consumer
+  (`results/integration.log`, `bash scripts/integ_http11.sh`). Genuine-
+  consumer step (H2O or Plack/Starlet/Furl per plan §16) not yet attempted.
 
 ## Layout
 
@@ -83,7 +87,8 @@ scripts/              run_baseline.sh, smoke_abi.c (C link+call test vs staticli
                       difftest_headers.c + diff_headers.sh,
                       difftest_chunked.c + diff_chunked.sh (Layer-2 harnesses),
                       fuzz_parse.c/.sh, fuzz_chunked.c/.sh, fuzz_triage.sh,
-                      fuzz_all.sh (differential fuzz campaign)
+                      fuzz_all.sh (differential fuzz campaign),
+                      integ_http11.c/.sh, integ_ctypes.py (loopback integration)
 ```
 
 ## Commands
@@ -102,6 +107,8 @@ CC=gcc bash scripts/diff_request.sh   # Layer-2 differential: C oracle vs releas
 CC=gcc bash scripts/diff_response.sh  # same for responses, 20,678 cases
 CC=gcc bash scripts/bench_compare.sh  # same-session C-vs-Rust interleaved bench,
                                        # writes results/bench-compare.json (internal numbers)
+CC=gcc bash scripts/integ_http11.sh   # loopback integration: relinked C consumer
+                                       # + ctypes consumer, writes results/integration.log
 CC=gcc scripts/run_baseline.sh   # rebuilds C baseline, verifies pin, writes results/baseline.json
 # C smoke test vs the Rust staticlib (needs cargo build first):
 gcc -Ireference -o target/c-baseline/smoke_abi scripts/smoke_abi.c target/debug/picohttpparser_rs.lib

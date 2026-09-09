@@ -42,14 +42,28 @@ begin: behavior is pinned.
 
 | Check | Result | Evidence |
 |---|---|---|
-| Fuzz, request/response/headers | 1,200,000 mutated cases (seeds 1/7/99/20240909), 0 mismatches | `target/fuzz/fuzz-all-20260909T021000Z.log` |
-| Fuzz, chunked (stateful, splits, dirty decoders) | 340,308 calls (seeds 7/99/12345), 0 mismatches | same log |
+| Fuzz, request/response/headers | 200,000 mutated cases (seed 11) + per-entry 100,000 × 3 (seed 7), 0 mismatches | `target/fuzz/fuzz-all-20260909T032635Z.log` (consolidated run; per-entry rows in `docs/fuzzing.md`) |
+| Fuzz, chunked (stateful, splits, dirty decoders) | 400,267 calls (seed 11), 0 mismatches | same log |
 | Crashes, either side | 0 | same log |
 | Triage pipeline | validated on synthetic marker (33 B → 6 B, 92 oracle runs) | `scripts/fuzz_triage.sh` |
 | Determinism | byte-identical rerun verified | — |
 
 Design, reproduction procedure, and promotion policy in `docs/fuzzing.md`.
 No mismatch needed triage; no corpus promotion, no new divergence row.
+
+## Loopback integration (plan M7 / repo M8) — PARTIAL 2026-09-09
+
+| Check | Result | Evidence |
+|---|---|---|
+| H2O-equivalent consumer relink | same source builds vs C oracle and vs Rust cdylib; loopback HTTP/1.1 exchange transcripts byte-identical | `results/integration.log`; repro `CC=gcc bash scripts/integ_http11.sh` |
+| Python ctypes second consumer | all five entry points parse + assert green | same log |
+| Genuine consumer (H2O/Plack/Starlet/Furl) | NOT attempted — full H2O server build infeasible on this machine (no OpenSSL dev libs; Windows unsupported upstream) | — |
+
+Scope (honest): single request/response shape over loopback TCP, all five
+entry points exercised, split delivery forced by small fixed recv sizes;
+no keep-alive/second exchange, no large bodies, no malformed traffic, no
+concurrency. Error-path and scale coverage stays with the differential and
+fuzz campaigns. Procedure in `docs/methodology.md`.
 
 ## Regression corpus (`tests/corpus/request/`, `tests/corpus/response/`)
 

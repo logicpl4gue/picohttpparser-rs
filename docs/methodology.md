@@ -142,6 +142,26 @@ one. Results land in `results/upstream-rust.log` with totals in
 `baseline.json:upstreamVsRust` (schema v5); any failure fails the script.
 The gate passes iff: this suite is green, every differential log is fresh
 and mismatch-free, and `docs/divergences.md` holds no OPEN/UNRESOLVED row.
+
+## Loopback integration proof (plan M7 / repo M8, partial)
+
+`CC=gcc bash scripts/integ_http11.sh` builds one consumer source
+(`scripts/integ_http11.c`) twice — against `reference/picohttpparser.c`
+and against the release cdylib — runs a real HTTP/1.1 exchange over loopback
+TCP under each (request parse + chunked upload server-side, response parse
++ trailer decode client-side, standalone header check, fixed small recvs
+forcing split delivery, 15 s recv timeouts so defects FAIL instead of
+hang), and requires byte-identical transcripts plus a green Python ctypes
+run (`scripts/integ_ctypes.py`, all five entry points). Per-run PID
+namespaces isolate concurrent invocations; the evidence log records rev,
+dirtiness, and artifact hashes (`results/integration.log`).
+
+Explicitly NOT shown: no genuine consumer (H2O/Plack/Starlet/Furl) is
+built — full H2O is infeasible here (no OpenSSL dev libs; Windows
+unsupported upstream). Single request/response shape, localhost only.
+
+## Layer-2 comparison discipline (what `diff_*.sh` compare)
+
 Compared per case — request: ret, method, path, version, header count;
 response: ret, version, status (incl. partial value on digit failure),
 reason (incl. empty + space-strip); both: every name/value — as
@@ -151,7 +171,7 @@ the scanned name behind; the Rust seam mirrors it two-phase). The harness
 never dereferences output pointers, so untouched sentinel slots cannot crash
 it — only genuinely divergent bytes fail.
 
-## Benchmark rules (forward-looking, per plan §13)
+## Benchmark rules (per plan §13; suite live since M9)
 
 Same machine, CPU governor, compiler version, `-O2`, corpus, iteration count
 for both sides; warmup runs; report mean/median/stddev; never compare debug
@@ -339,17 +359,18 @@ deliverable.
   whole-parse, kept — proven by 132,964 differential cases + full suite.
 - SWAR 8-byte prescan in `get_token_to_eol` (safe, filter-only, soundness
   proven by exhaustive `swar_filter_sound` unit test over all 65,536 byte
-  pairs): A/B-tested, ratio 1.52 → **0.98** (Rust 200.1ns vs C 203.6ns on
-  the anchor; 0.97 on the prior run — sub-1.0 twice, spreads ~3%), kept —
-  proven by the same gates. First sub-1.0 headline; still an internal
-  number, not a publication claim (single corpus).
+  pairs): A/B-tested at decision time, ratio 1.52 → 0.98 (0.97 on the
+  prior run — sub-1.0 twice, spreads ~3%), kept — proven by the same
+  gates. Later re-runs move within noise (retained anchor
+  `results/bench-compare.json` is the current record, not this paragraph).
+  Still an internal number, not a publication claim (single corpus).
 - `rtrim` rewrite and `#[inline]` attributes: REJECTED after disassembly
   evidence — `parse_token`/`get_token_to_eol`/`rtrim` are already fully
   inlined (no symbols emitted) and `parse_headers` contains zero panic
   call sites, so both changes would be proven no-ops. Verified, not assumed.
 - Labeled tiers (same-session runs, `results/bench-compare-*.json`): anchor
-  **0.97**, O3-pair **1.02** (both sides faster, gap steady), native-pair
-  **1.45** (C `-march=native` unlocks its pcmpestri path: 2.10s → 1.38s;
+  **0.9469**, O3-pair **0.9888** (both sides faster, gap steady), native-pair
+  **1.4499** (C `-march=native` unlocks its pcmpestri path: 2.10s → 1.38s;
   Rust scalar+SWAR barely moves). The native row quantifies the SIMD prize
   and the anchor rule stands: never mix native-C into headline claims.
 - Staticlib benchmarking stays infeasible on this toolchain (MinGW ld

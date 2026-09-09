@@ -1,0 +1,33 @@
+run_utc=2026-09-09T03:29:44Z
+rev=ebaf6ab
+dirty_files=14
+dll_sha256=cb6255b3054fd863f62e075fc4660f5345534101e82c2f7b2820db8a920aa2ad
+oracle_exe_sha256=a6e315d65eadd830dcb70627b762753ab0f5786b09a4817bdbdae6937ea632e8
+rust_exe_sha256=480652ee1bb65bab7a079a84c6353a24a0c628bee0c8007ee30231c683a2e4d5
+cc=gcc.exe (GCC) 16.2.0
+rustc=rustc 1.96.1 (31fca3adb 2026-06-26)
+python=Python 3.14.6
+--- oracle transcript ---
+server: method=POST path=/submit?q=1 version=1.1 headers=6 headlen=133
+server: h[0] Host: example.test
+server: h[1] Content-Type: text/plain
+server: h[2] Content-Length: 11
+server: h[3] X-Note: abc
+server: h[4] (cont):  def
+server: h[5] Connection: close
+server: standalone-headers ret=106 count=6
+server: standalone-headers h[0] matches request parse
+server: upload decoded=11 leftover=2 body=hello world in_data=0
+client: version=1.1 status=200 reason=OK headers=2 headlen=73
+client: h[0] Content-Type: text/plain
+client: h[1] Transfer-Encoding: chunked
+client: body decoded=11 leftover=0 body=hello world saw_data=1
+INTEGRATION OK
+--- rust transcript: byte-identical (diffed above) ---
+--- ctypes transcript ---
+ctypes: request method=GET path=/hello?a=1 version=1.1 headers=2
+ctypes: response version=1.1 status=404 reason=Not Found headers=1
+ctypes: headers ret=20 count=2 v1=two
+ctypes: chunked leftover=5 out=9 body=Wikipedia in_data=0
+CTYPES OK
+INTEGRATION verdict=PASS (C consumer relink + ctypes consumer)

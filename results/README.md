@@ -8,6 +8,10 @@ by scripts — **not hand-edited, never fabricated**.
 | `baseline.json` | Milestone 0 C baseline: environment, pin verification, upstream test-suite and benchmark outcomes. Missing tools are `"status": "skipped"` with an explicit `reason`. |
 | `latest.json` (future) | Latest full result set (compat + fuzz + bench). |
 | `baseline.json` archive policy | Regenerate with `scripts/run_baseline.sh`; keep old files under `results/archive/` when the pinned revision or machine changes. |
+| `upstream-tests.log` / `upstream-rust.log` | Upstream `test.c` TAP output vs C oracle / vs Rust cdylib (8/8 subtests each). |
+| `difftest-request.log`, `-response.log`, `-headers.log`, `-chunked.log` | Layer-2 differential totals + run identity (`run_utc`, `rev`). |
+| `bench-compare.json` (+ `-o3`, `-native` tiers) | Same-session C-vs-Rust numbers with artifact hashes (schema v1, own versioning). |
+| `integration.log` | M8 loopback transcripts (oracle + Rust, must be byte-identical) + ctypes transcript + provenance (rev, dirtiness, artifact hashes). |
 
 Rules:
 
