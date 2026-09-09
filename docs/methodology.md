@@ -139,7 +139,7 @@ shim where the libc lacks it) and links them against
 `target/release/picohttpparser_rs.dll` — *not* the C oracle. The suite's
 guard-page `mmap` input makes this an overread test as well as a behavioral
 one. Results land in `results/upstream-rust.log` with totals in
-`baseline.json:upstreamVsRust` (schema v4); any failure fails the script.
+`baseline.json:upstreamVsRust` (schema v5); any failure fails the script.
 The gate passes iff: this suite is green, every differential log is fresh
 and mismatch-free, and `docs/divergences.md` holds no OPEN/UNRESOLVED row.
 Compared per case — request: ret, method, path, version, header count;
@@ -166,6 +166,28 @@ Bench-seam rule: measure the **shipped artifact**. Rust numbers must come
 from the `cdylib`/`staticlib` via the same C-harness pattern as
 `scripts/smoke_abi.c` (identical loop, out-of-line calls both sides) — never
 from an rlib-linked Rust harness, which is a different codegen context.
+`scripts/bench_compare.sh` implements this: one binary times the C oracle
+loop and the cdylib loop interleaved (C,R/R,C), in-process, same REQ bytes
+included verbatim from `reference/bench.c`, results in
+`results/bench-compare.json` with artifact hash + machine identity.
+
+## Optimization decisions (audited, measured where stated)
+
+- `catch_unwind` stays on all four parsing exports: the seam cost is inside
+  the measured number (no separate estimate needed), and dropping it would
+  trade panic→−1 for panic→abort — a behavior-policy change requiring its
+  own deliberation, not a codegen tweak. Revisit only with a measured
+  seam-delta experiment.
+- Value-scan batching (8-at-a-time, C-mirror): A/B-tested, measured ~6%
+  SLOWER, reverted — LLVM already unrolls the plain loop; manual batching
+  added only scaffolding. Do not retry without a new hypothesis.
+- Token table (`TOKEN_CHAR` static LUT): A/B-tested, measured ~−11%
+  whole-parse, kept — proven by 132,964 differential cases + full suite.
+- SIMD skip-scanning, PGO, AVX2 tiers, `memchr` dependency: deferred. SIMD
+  needs differential fuzz before shipping `unsafe` into the hot path;
+  `memchr` solves single-byte search, not accept-set classification;
+  struct layouts are ABI-frozen and not optimizable.
+- Pinned release profile: unchanged by any finding; tiers stay labeled.
 
 ## Honesty policy
 

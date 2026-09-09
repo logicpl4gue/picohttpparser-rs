@@ -194,8 +194,12 @@ pub(crate) fn decode_chunked(
                 // `src <= bufsz` on every path into DATA, so no underflow.
                 let avail = bufsz - src;
                 if avail < dec.bytes_left_in_chunk {
-                    // Short data: bank what arrived, stay in DATA.
-                    buf.copy_within(src..src + avail, dst);
+                    // Short data: bank what arrived, stay in DATA. The guard
+                    // skips a full self-copy when a call starts mid-chunk
+                    // (dst == src == 0) — C does the same check.
+                    if dst != src {
+                        buf.copy_within(src..src + avail, dst);
+                    }
                     src += avail;
                     dst += avail;
                     dec.bytes_left_in_chunk -= avail;
@@ -204,7 +208,9 @@ pub(crate) fn decode_chunked(
                 let n = dec.bytes_left_in_chunk;
                 // `dst <= src` invariant and `src + n <= bufsz` (just proven
                 // `avail >= n`): in-bounds on both ends.
-                buf.copy_within(src..src + n, dst);
+                if dst != src {
+                    buf.copy_within(src..src + n, dst);
+                }
                 src += n;
                 dst += n;
                 dec.bytes_left_in_chunk = 0;

@@ -18,7 +18,7 @@ Rules:
 3. Report losses and wins; the goal is a controlled experiment, not a
    claim-file.
 
-## `baseline.json` schema (v4)
+## `baseline.json` schema (v5)
 
 Top-level: `schemaVersion` (number), `generatedUtc` (string),
 `generatedBy` (string), `pin` {`repository`, `commit`, `short`,
@@ -26,7 +26,7 @@ Top-level: `schemaVersion` (number), `generatedUtc` (string),
 `environment` {tool versions, `cpu`, `cpuCount`, `powerScheme`, all strings},
 `cBaseline` {`status`, `reason`, `buildCommand`, `benchTrials` (number),
 `benchWarmupDiscarded` (number), `benchIterations` (number|null),
-`benchSecondsMean`/`Min` (number|null), `benchNsPerParseMean` (number|null),
+`benchSecondsMean`/`Min`/`Median`/`Stddev` (number|null), `benchNsPerParseMean` (number|null),
 `benchRunsSeconds` (array), `benchWarmupSeconds` (number|null),
 `benchCorpusFile`, `benchCorpusSha256`, `benchScope`, `timer`,
 `timerGranularityNs` (number|null), `timerNote`},
@@ -36,4 +36,17 @@ Top-level: `schemaVersion` (number), `generatedUtc` (string),
 
 History: v1 = M0 baseline; v2 = test-suite counts; v3 = bench trials +
 machine identity + corpus metadata; v4 = `upstreamVsRust` (gate: unmodified
-upstream `test.c` linked against the Rust cdylib).
+upstream `test.c` linked against the Rust cdylib); v5 = median/stddev +
+parsed (not hardcoded) iteration count. Percentiles (plan §12 p50/p95/p99)
+are deliberately absent: they apply to per-iteration latency harnesses, not
+whole-loop aggregate timing.
+
+## `bench-compare.json` schema (v1, own versioning)
+
+Same-session C-vs-Rust record from `scripts/bench_compare.sh`: `rev`,
+`status` (always labeled internal-engineering-number), `machine`, `timer`
+(in-process `clock_gettime`, measured resolution), `protocol`, `c`
+{`buildCommand`, `ccVersion`, trials, mean/min}, `rust` {artifact path +
+sha256, rustc, pinned profile flags, trials, mean/min}, `ratioRustOverC_mean`,
+`stability` (`OK` or `CHECK` with reason), `corpus` {file = bench.c REQ
+macro included verbatim, sha, scope, iterations}.

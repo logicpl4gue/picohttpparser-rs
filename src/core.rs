@@ -41,17 +41,23 @@ pub(crate) trait HeaderSink {
     fn set_value(&mut self, i: usize, value: (usize, usize));
 }
 
-/// RFC 7230 `tchar`: exactly the set accepted by C's `token_char_map`
-/// (`!#$%&'*+-.^_`|~`, digits, letters — and nothing else).
-#[inline]
-fn is_token_char(b: u8) -> bool {
-    matches!(
-        b,
-        b'!' | b'#'
+/// RFC 7230 `tchar` table, mirroring C's `token_char_map` load+test exactly.
+/// (A/B-tested 2026-09-09; keep or revert per results/bench-compare.json.)
+static TOKEN_CHAR: [u8; 256] = build_token_table();
+
+const fn build_token_table() -> [u8; 256] {
+    let mut t = [0u8; 256];
+    let mut b = 0u32;
+    while b < 256 {
+        // tchar: ! # $ % & ' * + - . ^ _ ` | ~ DIGIT ALPHA (RFC 7230 3.2.6).
+        // The quote is 0x27 (avoids quote-escaping noise in this builder).
+        t[b as usize] = match b as u8 {
+            b'!'
+            | b'#'
             | b'$'
             | b'%'
             | b'&'
-            | b'\''
+            | 0x27
             | b'*'
             | b'+'
             | b'-'
@@ -63,8 +69,20 @@ fn is_token_char(b: u8) -> bool {
             | b'~'
             | b'0'..=b'9'
             | b'A'..=b'Z'
-            | b'a'..=b'z'
-    )
+            | b'a'..=b'z' => 1,
+            _ => 0,
+        };
+        b += 1;
+    }
+    t
+}
+
+/// RFC 7230 `tchar`: exactly the set accepted by C's `token_char_map`
+/// (`!#$%&'*+-.^_`|~`, digits, letters — and nothing else).
+#[inline]
+fn is_token_char(b: u8) -> bool {
+    // Index provably < 256 (`u8` range), so no bounds check survives.
+    TOKEN_CHAR[b as usize] != 0
 }
 
 /// C's `IS_PRINTABLE_ASCII`: `(c - 0x20) < 0x5F` in wrapping arithmetic.
@@ -146,6 +164,10 @@ pub(crate) fn parse_token(
 pub(crate) fn get_token_to_eol(buf: &[u8], pos: usize) -> Result<((usize, usize), usize), Error> {
     let start = pos;
     let mut p = pos;
+    // NOTE (A/B-tested 2026-09-09): an 8-at-a-time batched fast path mirroring
+    // C's DOIT unroll measured ~6% SLOWER (ratio 1.73 -> 1.86) — LLVM already
+    // unrolls/versions the plain loop itself, and manual batching only added
+    // scaffolding. Kept simple; see results/bench-compare.json history.
     loop {
         let b = *buf.get(p).ok_or(Error::Partial)?;
         if !is_printable_ascii(b) && ((b < 0x20 && b != b'\t') || b == 0x7f) {

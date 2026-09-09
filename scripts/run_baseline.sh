@@ -65,20 +65,40 @@ PICOTEST_PRESENT="present" && [ -f "$REF/picotest/picotest.c" ] || PICOTEST_PRES
 ( cd "$REF" && sha256sum -c SHA256SUMS >/dev/null 2>&1 ) && HASH_VERIFY="passed" || HASH_VERIFY="failed"
 # report detail
 HASH_DETAIL="$( cd "$REF" && sha256sum -c SHA256SUMS 2>&1 | tr '\n' ';' )"
+# F2 gate: a failed pin check fails every consumer of reference/ outright —
+# decided HERE, before the benchmark builds or runs anything from the tree.
+PIN_ENFORCED=0
+if [ "$HASH_VERIFY" != "passed" ]; then
+  TEST_STATUS="failed"; TEST_REASON="pin verification failed; refusing to build or run reference code"
+  RUST_STATUS="failed"; RUST_REASON="pin verification failed; refusing to build or run reference code"
+  PIN_ENFORCED=1
+fi
+# F3 guard: hang regressions must fail loudly, never stall. `timeout` ships
+# with MSYS coreutils; without it the binaries run unwrapped (same as before).
+TIMEOUT_RUN=""
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_RUN="timeout 300"
+fi
 
 # --- 3. benchmark -----------------------------------------------------------
 # Trials, not a single run: N timed launches, first discarded as warmup
 # (cold pages, CRT/DLL load, Defender scan, turbo ramp all live there).
 BENCH_N=7
 BENCH_STATUS="skipped"; BENCH_REASON=""
-BENCH_MEAN="null"; BENCH_MIN="null"; BENCH_NSPP="null"; BENCH_WARM="null"
+BENCH_MEAN="null"; BENCH_MIN="null"; BENCH_MED="null"; BENCH_SD="null"
+BENCH_NSPP="null"; BENCH_WARM="null"
 BENCH_RUNS="[]"; BENCH_TRIALS=0; BENCH_ITERS="null"
 BENCH_CORPUS_SHA=""; TIMER_GRAN="null"
 TIMER_NAME="date +%s%N"
-if [ "$CC_PRESENT" = "present" ]; then
+if [ "$PIN_ENFORCED" = "0" ] && [ "$CC_PRESENT" = "present" ]; then
   mkdir -p "$BENCH_DIR"
   BENCH_BIN="$BENCH_DIR/bench"
-  if $CC $CFLAGS -o "$BENCH_BIN" "$REF/bench.c" "$REF/picohttpparser.c" >"$BENCH_DIR/build.log" 2>&1; then
+  # Iteration count is parsed from the pinned source, never hardcoded: a
+  # future bench.c with a different loop bound cannot silently mislabel.
+  PARSED_ITERS="$(sed -n 's/^ *for *(i *= *0 *; *i *< *\([0-9][0-9]*\) *;.*/\1/p' "$REF/bench.c" | head -n1)"
+  if ! [[ "$PARSED_ITERS" =~ ^[0-9]+$ ]]; then
+    BENCH_STATUS="failed"; BENCH_REASON="could not parse iteration count from reference/bench.c"
+  elif $CC $CFLAGS -o "$BENCH_BIN" "$REF/bench.c" "$REF/picohttpparser.c" >"$BENCH_DIR/build.log" 2>&1; then
     BENCH_CORPUS_SHA="$(sha256sum "$REF/bench.c" 2>/dev/null | cut -d' ' -f1)"
     # No separate granularity probe: back-to-back `date` spawns measure MSYS
     # fork/exec + scheduler noise (~10-30 ms), not clock resolution, so such a
@@ -110,15 +130,21 @@ if [ "$CC_PRESENT" = "present" ]; then
       BENCH_RUNS="[$_runs]"; BENCH_TRIALS="$_n"
       BENCH_MEAN=$(awk "BEGIN{printf \"%.3f\", $_sum / $_n}")
       BENCH_MIN="$_min"
-      BENCH_NSPP=$(awk "BEGIN{printf \"%.1f\", ($BENCH_MEAN / 10000000) * 1000000000}")
-      BENCH_ITERS=10000000
+      # Median + population stddev from the retained runs (methodology asks
+      # for mean/median/stddev; all three are now stored, not just derived).
+      _sorted=$(echo "$_runs" | tr ',' '\n' | sort -n)
+      BENCH_MED=$(echo "$_sorted" | awk '{a[NR]=$1} END{if (NR%2) printf "%.3f", a[(NR+1)/2]; else printf "%.3f", (a[NR/2]+a[NR/2+1])/2}')
+      BENCH_SD=$(echo "$_sorted" | awk '{s+=$1; q+=$1*$1; n++} END{printf "%.3f", sqrt(q/n-(s/n)^2)}')
+      BENCH_ITERS="$PARSED_ITERS"
+      BENCH_NSPP=$(awk "BEGIN{printf \"%.1f\", ($BENCH_MEAN / $PARSED_ITERS) * 1000000000}")
     fi
   else
     BENCH_STATUS="failed"; BENCH_REASON="cc build failed, see target/c-baseline/build.log"
   fi
-else
+elif [ "$PIN_ENFORCED" = "0" ]; then
   BENCH_REASON="no C compiler in PATH (CC=${CC}: cc/gcc/clang absent)"
 fi
+# (PIN_ENFORCED=1 keeps bench skipped: a failed pin builds nothing.)
 
 # --- 4. upstream test suite (out-of-tree; reference/ stays immutable) --------
 TEST_STATUS="skipped"; TEST_REASON=""; TEST_TOTAL=""; TEST_PASSED=""; TEST_FAILED=""; TEST_SKIPPED=""
@@ -201,19 +227,7 @@ SHIM_C
     SAN_FLAGS=""; TEST_SAN="unavailable"
   fi
 fi
-# F2 gate: a failed pin check fails every consumer of reference/ outright.
-PIN_ENFORCED=0
-if [ "$HASH_VERIFY" != "passed" ]; then
-  TEST_STATUS="failed"; TEST_REASON="pin verification failed; refusing to build or run reference code"
-  RUST_STATUS="failed"; RUST_REASON="pin verification failed; refusing to build or run reference code"
-  PIN_ENFORCED=1
-fi
-# F3 guard: hang regressions must fail loudly, never stall. `timeout` ships
-# with MSYS coreutils; without it the binaries run unwrapped (same as before).
-TIMEOUT_RUN=""
-if command -v timeout >/dev/null 2>&1; then
-  TIMEOUT_RUN="timeout 300"
-fi
+# (PIN gate + TIMEOUT_RUN now live beside section 2, before any build.)
 if [ "$PIN_ENFORCED" = "0" ] && [ "$CC_PRESENT" = "present" ] && [ "$PICOTEST_PRESENT" = "present" ]; then
   TEST_BIN="$BENCH_DIR/test-bin"
   # shellcheck disable=SC2086
@@ -300,7 +314,7 @@ fi
 mkdir -p "$ROOT/results"
 if ! cat > "$OUT" <<EOF
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "generatedUtc": "$(jstr "$GEN_UTC")",
   "generatedBy": "scripts/run_baseline.sh",
   "pin": {
@@ -337,6 +351,8 @@ if ! cat > "$OUT" <<EOF
     "benchIterations": $BENCH_ITERS,
     "benchSecondsMean": $BENCH_MEAN,
     "benchSecondsMin": $BENCH_MIN,
+    "benchSecondsMedian": $BENCH_MED,
+    "benchSecondsStddev": $BENCH_SD,
     "benchNsPerParseMean": $BENCH_NSPP,
     "benchRunsSeconds": $BENCH_RUNS,
     "benchWarmupSeconds": $BENCH_WARM,

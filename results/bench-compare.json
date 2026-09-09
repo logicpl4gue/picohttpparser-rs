@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-09-09T01:29:03Z",
+  "rev": "0c689cc-dirty",
+  "status": "internal-engineering-number (Phase-0 measurement, not a publication claim)",
+  "machine": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpuCount": "12"
+  },
+  "timer": {
+    "name": "clock_gettime(CLOCK_MONOTONIC), in-process",
+    "resNs": "100"
+  },
+  "protocol": "7 trials interleaved C,R/R,C; trial 0 discarded as warmup; 10M iters/trial; per-iteration ret==len check both sides",
+  "c": {
+    "buildCommand": "gcc -O2 (-Dmain=bench_c_main -Dphr_parse_request=c_phr_parse_request via bench_compare.c include of reference/bench.c) + renamed oracle object",
+    "ccVersion": "gcc.exe (GCC) 16.2.0",
+    "trialsNs": [2170711000,2179740400,2098609500,2184927500,2156643900,2149506700],
+    "meanNs": 2156689833.3,
+    "minNs": 2098609500
+  },
+  "rust": {
+    "artifact": "target/release/picohttpparser_rs.dll",
+    "artifactSha256": "4d82b0653d9c3ca0ad9b073b1f20d75c54ca5476e8d02d6ade69808fe6ea9c3a",
+    "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "profile": "opt-level=2,codegen-units=1,lto=true,overflow-checks=false,debug-assertions=false,panic=unwind (Cargo.toml pins)",
+    "trialsNs": [3301550400,3245517400,3208440300,3262176200,3342359600,3294938000],
+    "meanNs": 3275830316.7,
+    "minNs": 3208440300
+  },
+  "ratioRustOverC_mean": 1.5189,
+  "stability": "OK",
+  "corpus": {
+    "file": "reference/bench.c REQ macro (included verbatim, zero drift by construction)",
+    "sha256": "cf44504db5908792d4f7c6355a7a05ba80cf2411efb85995fc6e2933ec9feca7",
+    "scope": "one fixed ~620B GET x10M, happy path only",
+    "iterations": 10000000
+  }
+}

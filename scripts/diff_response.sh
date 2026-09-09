@@ -47,4 +47,6 @@ echo "== run over corpus (teeing to results/difftest-response.log)"
    echo "rev=$_rev"; } | tee "$ROOT/results/difftest-response.log"
 # shellcheck disable=SC2086
 # shellcheck disable=SC2086
+_DIFF_T0=$(date +%s%N)
 "$OUT/difftest_response" $ROOT/tests/corpus/response/valid/* $ROOT/tests/corpus/response/malformed/* 2>&1 | tee -a "$ROOT/results/difftest-response.log"
+echo "elapsed_ms=$(( ($(date +%s%N) - _DIFF_T0) / 1000000 ))" | tee -a "$ROOT/results/difftest-response.log"

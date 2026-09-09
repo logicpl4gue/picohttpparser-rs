@@ -89,6 +89,8 @@ CC=gcc bash scripts/diff_chunked.sh    # Layer-2 differential, chunked decoder,
 CC=gcc bash scripts/diff_request.sh   # Layer-2 differential: C oracle vs release cdylib,
                                        # 87,052 cases, tees results/difftest-request.log
 CC=gcc bash scripts/diff_response.sh  # same for responses, 20,678 cases
+CC=gcc bash scripts/bench_compare.sh  # same-session C-vs-Rust interleaved bench,
+                                       # writes results/bench-compare.json (internal numbers)
 CC=gcc scripts/run_baseline.sh   # rebuilds C baseline, verifies pin, writes results/baseline.json
 # C smoke test vs the Rust staticlib (needs cargo build first):
 gcc -Ireference -o target/c-baseline/smoke_abi scripts/smoke_abi.c target/debug/picohttpparser_rs.lib
