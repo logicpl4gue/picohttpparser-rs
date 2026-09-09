@@ -38,16 +38,16 @@ via shared C harness, 7 trials, trial 0 discarded.
 
 | Row | Rust/C | Stability | Primary record |
 |---|---|---|---|
-| Anchor (upstream ~620 B REQ) | **0.9906** | CHECK-spread>5% | `results/bench-compare.json` |
-| tiny | 1.3830 | CHECK | same file |
-| typical | 1.1470 | CHECK | same file |
-| large | 0.8088 (Rust faster) | CHECK | same file |
-| response | 1.2631 | OK only here | same file |
-| chunked | 1.6794 | CHECK | same file |
-| malformed (reject path) | 1.7911 | CHECK | same file |
-| streaming (incremental) | 1.0566 | CHECK | same file |
+| Anchor (upstream ~620 B REQ) | **0.9746** | CHECK-spread>5% | `results/bench-compare.json` |
+| tiny | 1.4123 | CHECK | same file |
+| typical | 1.1544 | CHECK | same file |
+| large | 0.8166 (Rust faster) | CHECK | same file |
+| response | 1.2084 | CHECK | same file |
+| chunked | **1.1853** (was 1.6794 pre EXP-1 flatten) | CHECK | same file |
+| malformed (reject path) | 1.9472 | CHECK | same file |
+| streaming (incremental) | 1.1716 | CHECK | same file |
 | O3-pair anchor (labeled tier) | 0.9502 | CHECK | `results/bench-compare-o3.json` |
-| O3 malformed anomaly | **3.3907** (C ~1.26s vs Rust ~4.27s, both tight — real codegen effect, unexplained, side-tier only) | OK | same file |
+| O3 malformed anomaly | **3.3907 tier record; P1 same-session control: Rust-side O3/O2 = 1.68x REAL** (identical harness; C drifted the other way) — cause open, guard A/B queued | OK | same file + `docs/methodology.md` |
 | Native pair (labeled tier, historical) | 1.4499 — C pcmpestri leaps, Rust scalar+SWAR flat; the SIMD prize quantified | — | `results/bench-compare-native.json` |
 | PGO pair | SKIPPED — no `llvm-profdata`, `C:` 100% full; procedure stands | — | `docs/methodology.md` |
 

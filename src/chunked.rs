@@ -71,9 +71,17 @@ pub(crate) fn decode_chunked(
     // Every exit below records its outcome here, then breaks to the single
     // epilogue — so all state writeback happens in exactly one place.
     let err: Option<Error>;
+    // Grouped dispatch (EXP-1): C's `switch` falls through so GCC threads one
+    // state directly into the next; an 8-way `match` made LLVM emit a
+    // jump-table dispatch (~21 executions/parse on the 38 B bench corpus).
+    // Successors here are statically constant, so each chain below runs
+    // inline and the loop-top test is direct branches, no table. Mid-cycle
+    // entries (dirty carries) join via the `st ==` guards, which are
+    // call-invariant and predict perfectly after the first transition.
     'out: loop {
-        match st {
-            ST_SIZE => {
+        if st == ST_SIZE || st == ST_EXT || st == ST_EXPECT_LF {
+            // Chain A: SIZE -> EXT -> EXPECT_LF (terminator found inline).
+            if st == ST_SIZE {
                 loop {
                     if src == bufsz {
                         err = Some(Error::Partial);
@@ -116,7 +124,7 @@ pub(crate) fn decode_chunked(
                 hex = 0;
                 st = ST_EXT;
             }
-            ST_EXT => {
+            if st == ST_EXT {
                 // Chunk extensions run to CR (RFC 7230 A.2: no line folding);
                 // a bare LF is malformed. `src` sits on the size terminator.
                 loop {
@@ -135,7 +143,6 @@ pub(crate) fn decode_chunked(
                 src += 1;
                 st = ST_EXPECT_LF;
             }
-            ST_EXPECT_LF => {
                 if src == bufsz {
                     err = Some(Error::Partial);
                     break 'out;
@@ -155,8 +162,9 @@ pub(crate) fn decode_chunked(
                     }
                 }
                 st = ST_DATA;
-            }
-            ST_DATA => {
+        } else if st == ST_DATA || st == ST_DATA_CR || st == ST_DATA_LF {
+            // Chain B: DATA -> CR -> LF (payload plus framing inline).
+            if st == ST_DATA {
                 // `src <= bufsz` on every path into DATA, so no underflow.
                 let avail = bufsz - src;
                 if avail < left {
@@ -183,7 +191,7 @@ pub(crate) fn decode_chunked(
                 left = 0;
                 st = ST_DATA_CR;
             }
-            ST_DATA_CR => {
+            if st == ST_DATA_CR {
                 if src == bufsz {
                     err = Some(Error::Partial);
                     break 'out;
@@ -195,7 +203,6 @@ pub(crate) fn decode_chunked(
                 src += 1;
                 st = ST_DATA_LF;
             }
-            ST_DATA_LF => {
                 if src == bufsz {
                     err = Some(Error::Partial);
                     break 'out;
@@ -206,8 +213,9 @@ pub(crate) fn decode_chunked(
                 }
                 src += 1;
                 st = ST_SIZE;
-            }
-            ST_TRAIL_HEAD => {
+        } else if st == ST_TRAIL_HEAD || st == ST_TRAIL_MID {
+            // Chain C: trailer lines (cold path; kept grouped for shape).
+            if st == ST_TRAIL_HEAD {
                 loop {
                     if src == bufsz {
                         err = Some(Error::Partial);
@@ -228,7 +236,7 @@ pub(crate) fn decode_chunked(
                 }
                 st = ST_TRAIL_MID;
             }
-            ST_TRAIL_MID => {
+            if st == ST_TRAIL_MID {
                 // Trailer content runs to LF (CRs included, like C).
                 loop {
                     if src == bufsz {
@@ -243,11 +251,12 @@ pub(crate) fn decode_chunked(
                 src += 1;
                 st = ST_TRAIL_HEAD;
             }
+        } else {
             // Corrupt state (forged `_state`, unreachable from any real call
             // sequence): fail closed. C aborts here with asserts enabled and
             // *hangs* without them; returning an error is strictly safer and
             // is recorded in `docs/divergences.md`.
-            _ => unreachable!("chunked decoder is corrupt"),
+            unreachable!("chunked decoder is corrupt")
         }
     }
     // Single epilogue (C's `Exit`/`Complete` labels): publish hot state,

@@ -375,13 +375,16 @@ deliverable.
   inlined (no symbols emitted) and `parse_headers` contains zero panic
   call sites, so both changes would be proven no-ops. Verified, not assumed.
 - Labeled tiers (same-session runs, `results/bench-compare-*.json`): anchor
-  **0.9906**, O3-pair **0.9502** (both sides faster than their O2 selves, gap steady), native-pair
+  **0.9746**, O3-pair **0.9502** (both sides faster than their O2 selves, gap steady), native-pair
   **1.4499** (C `-march=native` unlocks its pcmpestri path: 2.10s → 1.38s;
-  Rust scalar+SWAR barely moves). O3-malformed anomaly re-probed 2026-09-09
-  on current code: malformed row 3.39x at O3 (C ~1.26s vs Rust ~4.27s, both
-  sides tight across 6 trials — a real codegen effect, not noise) vs 1.79x
-  at O2. Replicated twice post-restructure, still unexplained, side-tier
-  only; never headline material. The native row quantifies the SIMD prize and the anchor rule
+  Rust scalar+SWAR barely moves). O3-malformed anomaly, same-session control
+  2026-09-09 (P1): identical `-O2` harness, O2 dll vs `-C opt-level=3` dll —
+  Rust 2.61s → 4.38s (1.68x) while C moved 1.54s → 1.33s the other way.
+  Verdict: the Rust-side O3 regression is REAL (session-confound H1 disproven
+  for Rust; the 3.39x ratio-vs-C framing mixes in C-side session drift).
+  Cause still open: the only codegen delta is the SSE2 null-guard chain
+  (bounded +0.4–0.5s of the +1.77s gap); next probes are the guard-helper
+  A/B (P3) and caller-side controls. Side-tier only; never headline material. The native row quantifies the SIMD prize and the anchor rule
   stands: never mix native-C into headline claims.
 - Chunked locals + single epilogue (`decode_chunked` restructure): KEPT on
   structural grounds with honest numbers — chunked row moved 1.7136 →
@@ -391,6 +394,14 @@ deliverable.
   round-trips; what remains identical is proven by struct-memcmp differential (3,506 cases at decision time; re-verified at 3,698 on the current re-run) + full suite. Rationale for keeping a sub-noise change: it
   deletes code paths (one writeback site instead of decentralised stores)
   rather than adding cleverness.
+- Chunked dispatch flatten (EXP-1, 2026-09-09): the 8-way `match` emitted a
+  jump-table dispatch (~21 executions/parse on the 38 B corpus); grouped
+  into three inline chains (SIZE→EXT→EXPECT_LF, DATA→CR→LF, trailers) with
+  range-free `==` dispatch and call-invariant entry joins. Chunked row
+  **1.6794 → 1.1853 same-session** (~12.4 ns/parse recovered; jump table
+  verified gone — sole remaining indirect branch is the memmove thunk).
+  Residue (~0.19) matches the itemized seam + copy-scaffolding bounds.
+  Proven by 3,698-case struct-memcmp differential + fuzz + full suite.
 - Staticlib benchmarking stays infeasible on this toolchain (MinGW ld
   rejects the MSVC EH residue — re-probed, still fails), so every Rust
   number includes the cdylib IAT hop. Disclosed, not hidden; Rust callers
