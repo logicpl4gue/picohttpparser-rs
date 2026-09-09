@@ -8,7 +8,7 @@ The original is treated as a **behavioral oracle**: we verify by differential
 testing, fuzzing, and the upstream test suite — and we publish losses as well
 as wins. See `picohttpparser-rs-plan.md` for the full project plan.
 
-## Status — Milestone 4 (standalone header parser)
+## Status — Milestone 5 (chunked decoder: all entry points live)
 
 > Numbering note: `picohttpparser-rs-plan.md` defines Milestone 3 as
 > "Responses + Headers"; the repo implemented it as two milestones
@@ -44,7 +44,13 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
   (`CC=gcc bash scripts/diff_headers.sh`, log in
   `results/difftest-headers.log`); unit vectors in `tests/headers.rs`;
   corpus in `tests/corpus/headers/` (31 files).
-- ⏳ Not started: chunked decoder (Milestone 5), fuzzing, benchmarks,
+- ✅ Milestone 5 (chunked decoder): stateful in-place `chunked` core with
+  full decoder-state lockstep; 3,506 differential cases vs C with 0
+  mismatches (`CC=gcc bash scripts/diff_chunked.sh`, log in
+  `results/difftest-chunked.log`); unit vectors in `tests/chunked.rs`;
+  corpus in `tests/corpus/chunked/` (31 files, incl. 1 MB chunk, overhead
+  bomb + exact rule-boundary pairs).
+- ⏳ Not started: compatibility gate review, fuzzing, benchmarks,
   H2O integration.
 
 ## Layout
@@ -52,13 +58,15 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
 ```
 reference/            Pinned upstream (immutable) + PINNED.md + SHA256SUMS
 src/                  Rust crate — core.rs (shared safe core), request.rs (M2),
-                      response.rs (M3), ffi.rs (C ABI seam + remaining stubs)
+                      response.rs (M3), chunked.rs (M5, stateful),
+                      ffi.rs (C ABI seam, no stubs remain)
 docs/                 api.md, methodology.md, compatibility.md, divergences.md
 results/              baseline.json, README.md (machine-readable evidence)
 scripts/              run_baseline.sh, smoke_abi.c (C link+call test vs staticlib),
                       difftest_request.c + diff_request.sh,
                       difftest_response.c + diff_response.sh,
-                      difftest_headers.c + diff_headers.sh (Layer-2 harnesses)
+                      difftest_headers.c + diff_headers.sh,
+                      difftest_chunked.c + diff_chunked.sh (Layer-2 harnesses)
 ```
 
 ## Commands
@@ -66,9 +74,12 @@ scripts/              run_baseline.sh, smoke_abi.c (C link+call test vs staticli
 ```bash
 cargo build            # builds rlib + cdylib + staticlib
 cargo test             # tests/abi.rs (layout + entry guards) + tests/request.rs +
-                       # tests/response.rs + tests/headers.rs (parser vectors)
+                       # tests/response.rs + tests/headers.rs + tests/chunked.rs
+                       # (parser vectors)
 CC=gcc bash scripts/diff_headers.sh    # Layer-2 differential, header blocks,
                                        # 21,728 cases, tees results/difftest-headers.log
+CC=gcc bash scripts/diff_chunked.sh    # Layer-2 differential, chunked decoder,
+                                       # 3,506 cases, tees results/difftest-chunked.log
 CC=gcc bash scripts/diff_request.sh   # Layer-2 differential: C oracle vs release cdylib,
                                        # 87,052 cases, tees results/difftest-request.log
 CC=gcc bash scripts/diff_response.sh  # same for responses, 20,678 cases

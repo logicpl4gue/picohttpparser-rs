@@ -121,8 +121,7 @@ targets differ and get re-pinned when a 32-bit toolchain is exercised).
 | `struct phr_header *` | `*mut PhrHeader` |
 | `struct phr_chunked_decoder *` | `*mut PhrChunkedDecoder` (query fn uses `*const`, ABI-identical) |
 
-Rust signatures (request/response/headers live since M2/M3/M4; only the
-chunked entry points are still stubs returning `-1`/`0`):
+Rust signatures (all five entry points live since M2–M5; no stubs remain):
 
 ```rust
 #[unsafe(no_mangle)]

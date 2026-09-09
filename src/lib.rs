@@ -23,12 +23,18 @@
 //! - ✅ Milestone 4 (standalone header parser): `phr_parse_headers` wired
 //!   straight to the shared core; 21,728 differential cases with 0 mismatches
 //!   (`scripts/diff_headers.sh`).
-//! - ⏳ Milestone 5+ (chunked decoder, fuzzing, benchmarks): not started.
+//! - ✅ Milestone 5 (chunked decoder): stateful in-place `chunked` core;
+//!   3,506 differential cases with 0 mismatches (`scripts/diff_chunked.sh`).
+//!   All five C entry points are live; no stubs remain.
+//! - ⏳ Milestone 6+ (compatibility gate, fuzzing, benchmarks, consumer
+//!   integration): not started.
 
 #![warn(missing_docs)]
 
 pub mod ffi;
 
+/// Chunked-transfer decoder (Milestone 5, the only stateful parser).
+mod chunked;
 /// Safe, allocation-free parsing core (offsets in, offsets out).
 mod core;
 /// Request-line parser (Milestone 2).

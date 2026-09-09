@@ -3,9 +3,9 @@
 //! Signatures and struct layouts mirror `reference/picohttpparser.h` at pin
 //! `f4d94b48b31e0abae029ebeafcfd9ca0680ede58`. `phr_parse_request`
 //! (Milestone 2, via `crate::request`), `phr_parse_response` (Milestone 3,
-//! via `crate::response`) and `phr_parse_headers` (Milestone 4, shared
-//! core wired straight through) are real parsers; `phr_decode_chunked` and
-//! `phr_decode_chunked_is_in_data` are still **stubs** until Milestone 5.
+//! via `crate::response`), `phr_parse_headers` (Milestone 4, shared core)
+//! and the chunked decoder pair (Milestone 5, via `crate::chunked`) are all
+//! real parsers; no stubs remain.
 //!
 //! This module is the crate's entire `unsafe` surface: the parsing core only
 //! reports offsets, and this seam turns them into output pointers.
@@ -44,12 +44,18 @@ pub struct PhrHeader {
 /// callers; `consume_trailer` selects whether trailing headers are consumed.
 #[repr(C)]
 pub struct PhrChunkedDecoder {
-    bytes_left_in_chunk: usize,
-    consume_trailer: c_char,
-    _hex_count: c_char,
-    _state: c_char,
-    _total_read: u64,
-    _total_overhead: u64,
+    /// Bytes still expected in the current chunk.
+    pub bytes_left_in_chunk: usize,
+    /// Nonzero: consume trailers after the zero chunk instead of stopping.
+    pub consume_trailer: c_char,
+    /// Hex digits accumulated for the current chunk size (internal).
+    pub _hex_count: c_char,
+    /// State-machine state 0–7, matching C's anonymous enum (internal).
+    pub _state: c_char,
+    /// Total bytes ever fed (internal; drives the overhead rule).
+    pub _total_read: u64,
+    /// Framing bytes seen on incomplete calls (internal; overhead rule).
+    pub _total_overhead: u64,
 }
 
 /// [`HeaderSink`](crate::core::HeaderSink) writing straight into the
@@ -428,37 +434,91 @@ fn parse_headers_inner(
 /// Decodes chunked-transfer encoding in place.
 ///
 /// Returns octets left undecoded (>= 0), `-2` for incomplete input, `-1` on
-/// failure. **Milestone 1 stub**: always returns `-1`; real decoding is added
-/// in Milestone 5.
+/// failure. Behaviorally identical to C's `phr_decode_chunked` (Milestone 5):
+/// the buffer is rewritten with framing removed, `*bufsz` becomes the decoded
+/// length, and the decoder carries the cross-call state — including the
+/// framing-overhead rule (>= 100 KiB incomplete framing with data below a
+/// quarter of the read).
 ///
 /// # Safety
 ///
-/// The stub does not dereference any argument. When real decoding lands,
-/// `decoder` must point to a zero-initialized `PhrChunkedDecoder` that lives
-/// across calls, and `buf`/`*bufsz` must describe a writable buffer.
+/// `decoder` must point to a valid `PhrChunkedDecoder` (zero-filled before
+/// first use, then carried across calls), and `buf`/`*bufsz` must describe a
+/// writable buffer. Null `decoder`/`bufsz` (or null `buf` with nonzero
+/// length) fail closed with `-1` instead of faulting; null `buf` with length
+/// zero reads as empty (`-2`), like C which never dereferences it then.
+/// A panic anywhere inside maps to `-1` per the crate's pinned panic policy.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn phr_decode_chunked(
-    _decoder: *mut PhrChunkedDecoder,
-    _buf: *mut c_char,
-    _bufsz: *mut usize,
+    decoder: *mut PhrChunkedDecoder,
+    buf: *mut c_char,
+    bufsz: *mut usize,
 ) -> isize {
-    -1
+    // `match` (not `unwrap_or`) so the -1 mapping stays explicit;
+    // `unwrap_or` would also trip the crate's `clippy::unwrap_used` deny.
+    #[allow(clippy::manual_unwrap_or)]
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        decode_chunked_inner(decoder, buf, bufsz)
+    })) {
+        Ok(r) => r,
+        Err(_) => -1,
+    }
+}
+
+/// `phr_decode_chunked` minus the unwind guard.
+fn decode_chunked_inner(
+    decoder: *mut PhrChunkedDecoder,
+    buf: *mut c_char,
+    bufsz: *mut usize,
+) -> isize {
+    if decoder.is_null() || bufsz.is_null() {
+        return -1;
+    }
+    // SAFETY: decoder/bufsz checked non-null above. A null `buf` is only
+    // acceptable with `len == 0` (reads as empty, like C which never
+    // dereferences it then); otherwise it fails closed.
+    unsafe {
+        let len = *bufsz;
+        if len != 0 && buf.is_null() {
+            return -1;
+        }
+        // Zero-length input still drives the state machine (a stored state
+        // with no new bytes exits incomplete, like C).
+        let mut empty: [u8; 0] = [];
+        let data: &mut [u8] = if len == 0 {
+            &mut empty
+        } else {
+            // SAFETY: non-null (checked) + caller-guaranteed `len` bytes.
+            std::slice::from_raw_parts_mut(buf as *mut u8, len)
+        };
+        // SAFETY: non-null (checked) + caller-guaranteed valid decoder.
+        let dec: &mut PhrChunkedDecoder = &mut *decoder;
+        let (status, decoded) = crate::chunked::decode_chunked(dec, data);
+        *bufsz = decoded;
+        match status {
+            Ok(leftover) => leftover as isize,
+            Err(crate::core::Error::Partial) => -2,
+            Err(crate::core::Error::Malformed) => -1,
+        }
+    }
 }
 
 /// Queries whether the chunked decoder is in the middle of chunked data.
 ///
-/// **Milestone 1 stub**: always returns `0` (not in data). Real state
-/// tracking is added in Milestone 5.
+/// True exactly when the decoder state is `IN_CHUNK_DATA`, like C
+/// (Milestone 5).
 ///
 /// # Safety
 ///
-/// The stub does not dereference its argument. When real tracking lands,
-/// `decoder` must point to a valid `PhrChunkedDecoder`.
+/// `decoder` must point to a valid `PhrChunkedDecoder`. Null fails closed
+/// with `0`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn phr_decode_chunked_is_in_data(
-    _decoder: *const PhrChunkedDecoder,
-) -> c_int {
-    0
+pub unsafe extern "C" fn phr_decode_chunked_is_in_data(decoder: *const PhrChunkedDecoder) -> c_int {
+    if decoder.is_null() {
+        return 0;
+    }
+    // SAFETY: non-null (checked) + caller-guaranteed valid decoder.
+    unsafe { crate::chunked::is_in_data(&*decoder) as c_int }
 }
 
 // --- compile-time ABI pins ------------------------------------------------

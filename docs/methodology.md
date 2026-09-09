@@ -101,12 +101,14 @@ time target/c-baseline/bench            # 10,000,000 iterations, exits 0 on succ
   aborts, never UB through the ABI); M2+ bodies get `catch_unwind` → `-1`,
   and the core stays panic-free (`unwrap_used`/`expect_used` denied).
 
-## Milestone 2/3/4 differential (Layer 2, request + response + headers)
+## Milestone 2/3/4/5 differential (Layer 2, request + response + headers + chunked)
 
 ```bash
 CC=gcc bash scripts/diff_request.sh    # builds oracle + harness, runs corpus, tees results/difftest-request.log
 CC=gcc bash scripts/diff_response.sh   # same for responses, tees results/difftest-response.log
 CC=gcc bash scripts/diff_headers.sh    # same for header blocks, tees results/difftest-headers.log
+CC=gcc bash scripts/diff_chunked.sh    # stateful decoder: single + split + dirty-state cases,
+                                       # tees results/difftest-chunked.log
 ```
 
 What it does: compiles `reference/picohttpparser.c` with `-D` renames
@@ -118,7 +120,16 @@ and every strict prefix cold (`last_len` = 0 — without this, the slowloris
 gate short-circuits all short prefixes and parse-path EOF handling goes
 uncompared).
 
-Case formula: cases/file = 7 × ((len + 2) + len); total = 7 × (2×Σlen + 2×files).
+Chunked (`diff_chunked.sh`) differs structurally: the decoder is stateful, so
+each file runs single-call, exhaustive two-way splits (quarters for >8 KB
+files), three-way quarter splits, and dirty initial decoder states, under
+both `consume_trailer` settings — comparing ret, decoded length,
+`is_in_data`, the full decoder struct, and the entire working buffer after
+every call.
+
+Case formula (request/response/headers harnesses): cases/file = 7 × ((len + 2) + len);
+total = 7 × (2×Σlen + 2×files). The chunked harness counts single, split,
+and dirty-state calls instead (see its stored log).
 Compared per case — request: ret, method, path, version, header count;
 response: ret, version, status (incl. partial value on digit failure),
 reason (incl. empty + space-strip); both: every name/value — as

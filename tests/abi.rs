@@ -1,5 +1,5 @@
 //! ABI integration tests (Milestone 1 shell; null-guard wording updated
-//! Milestones 2–4 as each parser went live).
+//! Milestones 2–5 as each parser went live).
 //!
 //! Layout pins plus fail-closed entry guards. `phr_parse_request` is a real
 //! parser since M2, but these all-null calls exercise only its null-pointer
@@ -68,14 +68,14 @@ fn headers_null_guards_return_error() {
 }
 
 #[test]
-fn stub_phr_decode_chunked_returns_error() {
+fn chunked_null_guards_return_error() {
     let ret =
         unsafe { picohttpparser_rs::ffi::phr_decode_chunked(null_mut(), null_mut(), null_mut()) };
     assert_eq!(ret, -1);
 }
 
 #[test]
-fn stub_phr_decode_chunked_is_in_data_returns_not_in_data() {
+fn chunked_query_null_guard_returns_not_in_data() {
     let ret = unsafe { picohttpparser_rs::ffi::phr_decode_chunked_is_in_data(null()) };
     assert_eq!(ret, 0);
 }
