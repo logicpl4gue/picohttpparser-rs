@@ -57,7 +57,10 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
   re-run fresh the same day: 132,964 cases, 0 mismatches. Divergences: 0
   unresolved (3 INTENTIONAL fail-closed rows). Details in
   `docs/compatibility.md`.
-- ⏳ Not started: fuzzing, benchmarks, H2O integration.
+- ✅ Milestone 7 (fuzz campaign, plan M6): deterministic differential
+  fuzzing, ~1.54M executions, 0 mismatches, 0 crashes either side
+  (`bash scripts/fuzz_all.sh`; design + numbers in `docs/fuzzing.md`).
+- ⏳ Not started: benchmarks, H2O integration.
 
 ## Layout
 
@@ -66,13 +69,16 @@ reference/            Pinned upstream (immutable) + PINNED.md + SHA256SUMS
 src/                  Rust crate — core.rs (shared safe core), request.rs (M2),
                       response.rs (M3), chunked.rs (M5, stateful),
                       ffi.rs (C ABI seam, no stubs remain)
-docs/                 api.md, methodology.md, compatibility.md, divergences.md
+docs/                 api.md, methodology.md, compatibility.md, divergences.md,
+                      fuzzing.md
 results/              baseline.json, README.md (machine-readable evidence)
 scripts/              run_baseline.sh, smoke_abi.c (C link+call test vs staticlib),
                       difftest_request.c + diff_request.sh,
                       difftest_response.c + diff_response.sh,
                       difftest_headers.c + diff_headers.sh,
-                      difftest_chunked.c + diff_chunked.sh (Layer-2 harnesses)
+                      difftest_chunked.c + diff_chunked.sh (Layer-2 harnesses),
+                      fuzz_parse.c/.sh, fuzz_chunked.c/.sh, fuzz_triage.sh,
+                      fuzz_all.sh (differential fuzz campaign)
 ```
 
 ## Commands

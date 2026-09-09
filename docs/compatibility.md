@@ -38,6 +38,19 @@ Total: 132,964 differential cases + 299 upstream assertions × 2 targets,
 zero failures, zero unresolved divergences. Optimization (plan M8+) may
 begin: behavior is pinned.
 
+## Fuzz Campaign (plan M6 / repo M7) — CLEAN 2026-09-09
+
+| Check | Result | Evidence |
+|---|---|---|
+| Fuzz, request/response/headers | 1,200,000 mutated cases (seeds 1/7/99/20240909), 0 mismatches | `target/fuzz/fuzz-all-20260909T021000Z.log` |
+| Fuzz, chunked (stateful, splits, dirty decoders) | 340,308 calls (seeds 7/99/12345), 0 mismatches | same log |
+| Crashes, either side | 0 | same log |
+| Triage pipeline | validated on synthetic marker (33 B → 6 B, 92 oracle runs) | `scripts/fuzz_triage.sh` |
+| Determinism | byte-identical rerun verified | — |
+
+Design, reproduction procedure, and promotion policy in `docs/fuzzing.md`.
+No mismatch needed triage; no corpus promotion, no new divergence row.
+
 ## Regression corpus (`tests/corpus/request/`, `tests/corpus/response/`)
 
 60 request files (23 valid + 37 malformed), 34 response files (15 valid +

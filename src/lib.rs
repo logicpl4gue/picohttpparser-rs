@@ -29,7 +29,9 @@
 //! - ✅ Milestone 6 (compatibility gate, plan M5): unmodified upstream
 //!   `test.c` passes 8/8 against the Rust cdylib; 132,964 differential
 //!   cases with 0 mismatches; 0 unresolved divergences.
-//! - ⏳ Milestone 7+ (fuzzing, benchmarks, consumer integration): not started.
+//! - ✅ Milestone 7 (fuzz campaign, plan M6): ~1.54M deterministic
+//!   differential executions, 0 mismatches, 0 crashes (`docs/fuzzing.md`).
+//! - ⏳ Milestone 8+ (benchmarks, consumer integration): not started.
 
 #![warn(missing_docs)]
 
