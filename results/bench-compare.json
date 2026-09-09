@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
-  "generatedUtc": "2026-09-09T01:49:16Z",
-  "rev": "935b176-dirty",
-  "status": "internal-engineering-number (Phase-0 measurement, not a publication claim)",
+  "schemaVersion": 2,
+  "generatedUtc": "2026-09-09T02:41:01Z",
+  "rev": "b00f05a-dirty",
+  "status": "internal-engineering-number (measurement, not a publication claim)",
   "machine": {
     "cpu": "12th Gen Intel(R) Core(TM) i5-12400F",
     "cpuCount": "12"
@@ -11,30 +11,110 @@
     "name": "clock_gettime(CLOCK_MONOTONIC), in-process",
     "resNs": "100"
   },
-  "protocol": "7 trials interleaved C,R/R,C; trial 0 discarded as warmup; 10M iters/trial; per-iteration ret==len check both sides",
+  "protocol": "anchor + 7 categories; each: 7 trials interleaved C,R/R,C; trial 0 discarded as warmup; per-iteration result check both sides",
   "c": {
     "buildCommand": "gcc -O2 (-Dmain=bench_c_main -Dphr_parse_request=c_phr_parse_request via bench_compare.c include of reference/bench.c) + renamed oracle object",
     "ccVersion": "gcc.exe (GCC) 16.2.0",
-    "trialsNs": [2065733400,2061696500,2036724900,2024571900,2016536900,2009323900],
-    "meanNs": 2035764583.3,
-    "minNs": 2009323900
+    "trialsNs": [2528981400,2574046000,2722211200,2593523900,2609869000,2530487300],
+    "meanNs": 2593186466.7,
+    "minNs": 2528981400
   },
   "rust": {
     "artifact": "target/release/picohttpparser_rs.dll",
-    "artifactSha256": "9a3e34d136d86ffe92c3bebfaa5e44dd189b4cfa7733f13ee3f1c05e420f75f3",
+    "artifactSha256": "03d84c57e647fb68c527af6c9e568b24e08de36b363d09685a4d16e18cebdeb7",
     "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
     "profile": "pinned(opt-level=2,CGU1,LTO,overflow-off,debug-off,unwind)",
     "tier": "anchor",
-    "trialsNs": [1993333600,1970614200,2015777200,1995332500,2023603700,2004548800],
-    "meanNs": 2000535000.0,
-    "minNs": 1970614200
+    "trialsNs": [2453070700,2449579100,2479429300,2440195000,2436309100,2474342000],
+    "meanNs": 2455487533.3,
+    "minNs": 2436309100
   },
-  "ratioRustOverC_mean": 0.9827,
-  "stability": "OK",
+  "ratioRustOverC_mean": 0.9469,
+  "stability": "CHECK-spread>5%",
   "corpus": {
     "file": "reference/bench.c REQ macro (included verbatim, zero drift by construction)",
     "sha256": "cf44504db5908792d4f7c6355a7a05ba80cf2411efb85995fc6e2933ec9feca7",
     "scope": "one fixed ~620B GET x10M, happy path only",
     "iterations": 10000000
+  },
+  "categories": {
+    "tiny": {
+      "iters": 120000000,
+      "cMeanNs": 2447405883.3,
+      "cMinNs": 2374137800,
+      "rMeanNs": 3503246600.0,
+      "rMinNs": 3372633700,
+      "ratio": 1.4314,
+      "stability": "CHECK-spread>5%",
+      "cTrialsNs": [2578757900,2480185100,2475351200,2377225700,2374137800,2398777600],
+      "rTrialsNs": [3761765000,3630171200,3374099100,3451299400,3429511200,3372633700],
+      "tier": "anchor"
+    },    "typical": {
+      "iters": 10000000,
+      "cMeanNs": 1437252533.3,
+      "cMinNs": 1385450500,
+      "rMeanNs": 1670040716.7,
+      "rMinNs": 1605473600,
+      "ratio": 1.1620,
+      "stability": "CHECK-spread>5%",
+      "cTrialsNs": [1462752100,1432598700,1385450500,1465583200,1387292500,1489838200],
+      "rTrialsNs": [1723857200,1682543500,1610496500,1716654600,1605473600,1681218900],
+      "tier": "anchor"
+    },    "large": {
+      "iters": 1000000,
+      "cMeanNs": 1546406366.7,
+      "cMinNs": 1466590800,
+      "rMeanNs": 1264260683.3,
+      "rMinNs": 1220341100,
+      "ratio": 0.8175,
+      "stability": "CHECK-spread>5%",
+      "cTrialsNs": [1528905900,1466590800,1559464400,1622607900,1539915600,1560953600],
+      "rTrialsNs": [1285930000,1220341100,1255487500,1335403500,1240147000,1248255000],
+      "tier": "anchor"
+    },    "response": {
+      "iters": 30000000,
+      "cMeanNs": 1953085933.3,
+      "cMinNs": 1843812000,
+      "rMeanNs": 2365416283.3,
+      "rMinNs": 2272900400,
+      "ratio": 1.2111,
+      "stability": "CHECK-spread>5%",
+      "cTrialsNs": [1910599500,1958883300,2091816200,1980442600,1932962000,1843812000],
+      "rTrialsNs": [2358807500,2325883700,2414760500,2372071800,2272900400,2448073800],
+      "tier": "anchor"
+    },    "chunked": {
+      "iters": 60000000,
+      "cMeanNs": 1696515900.0,
+      "cMinNs": 1590251400,
+      "rMeanNs": 2907169733.3,
+      "rMinNs": 2714312500,
+      "ratio": 1.7136,
+      "stability": "CHECK-spread>5%",
+      "cTrialsNs": [1764281000,1874572400,1651012500,1677771500,1621206600,1590251400],
+      "rTrialsNs": [3186185500,3080574800,2959100000,2760283200,2742562400,2714312500],
+      "tier": "anchor"
+    },    "malformed": {
+      "iters": 400000000,
+      "cMeanNs": 1380890883.3,
+      "cMinNs": 1344338700,
+      "rMeanNs": 2710229766.7,
+      "rMinNs": 2642736300,
+      "ratio": 1.9627,
+      "stability": "CHECK-spread>5%",
+      "cTrialsNs": [1344338700,1354830600,1387729800,1393650800,1385106000,1419689400],
+      "rTrialsNs": [2642736300,2703348900,2693688500,2704964400,2722578600,2794061900],
+      "tier": "anchor"
+    },    "streaming": {
+      "iters": 3000000,
+      "cMeanNs": 1115494516.7,
+      "cMinNs": 1085032000,
+      "rMeanNs": 1312449133.3,
+      "rMinNs": 1279558300,
+      "ratio": 1.1766,
+      "stability": "CHECK-spread>5%",
+      "cTrialsNs": [1146901800,1114155800,1119960400,1085032000,1119950000,1106967100],
+      "rTrialsNs": [1352008900,1294064800,1279558300,1309317000,1325773200,1313972600],
+      "tier": "anchor"
+    }
   }
 }

@@ -13,7 +13,8 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
 > Numbering note: `picohttpparser-rs-plan.md` defines Milestone 3 as
 > "Responses + Headers"; the repo implemented it as two milestones
 > (M3 response, M4 headers), so repo numbers run one ahead of the plan
-> from here on (repo M5 chunked = plan M4, repo M6 gate = plan M5).
+> from here on (repo M5 chunked = plan M4, repo M6 gate = plan M5,
+> repo M9 benchmarks = plan M8; repo M8 is reserved for plan M7/H2O).
 
 - ✅ Milestone 0 baseline: pinned upstream revision
   `f4d94b48b31e0abae029ebeafcfd9ca0680ede58` in `reference/` (files +
@@ -60,7 +61,11 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
 - ✅ Milestone 7 (fuzz campaign, plan M6): deterministic differential
   fuzzing, ~1.54M executions, 0 mismatches, 0 crashes either side
   (`bash scripts/fuzz_all.sh`; design + numbers in `docs/fuzzing.md`).
-- ⏳ Not started: benchmarks, H2O integration.
+- ✅ Milestone 9 (benchmarks, plan M8): reproducible multi-category
+  C-vs-Rust suite, 7/7 plan §11 categories with per-corpus ratios
+  (`CC=gcc bash scripts/bench_compare.sh`; numbers + procedure in
+  `docs/methodology.md`, raw data in `results/bench-compare.json`).
+- ⏳ Milestone 8 (plan M7): H2O integration — not started.
 
 ## Layout
 

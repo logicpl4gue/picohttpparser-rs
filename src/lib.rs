@@ -31,7 +31,9 @@
 //!   cases with 0 mismatches; 0 unresolved divergences.
 //! - ✅ Milestone 7 (fuzz campaign, plan M6): ~1.54M deterministic
 //!   differential executions, 0 mismatches, 0 crashes (`docs/fuzzing.md`).
-//! - ⏳ Milestone 8+ (benchmarks, consumer integration): not started.
+//! - ✅ Milestone 9 (benchmarks, plan M8): 7-category C-vs-Rust suite
+//!   (`scripts/bench_compare.sh`, `results/bench-compare.json`).
+//! - ⏳ Milestone 8 (plan M7): H2O integration — not started.
 
 #![warn(missing_docs)]
 

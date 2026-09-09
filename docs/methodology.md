@@ -171,6 +171,160 @@ loop and the cdylib loop interleaved (C,R/R,C), in-process, same REQ bytes
 included verbatim from `reference/bench.c`, results in
 `results/bench-compare.json` with artifact hash + machine identity.
 
+## M9 benchmark suite — multi-category procedure (plan M8, §11–§13)
+
+The single-corpus anchor above (fixed upstream REQ × 10M,
+`results/bench-compare.json`, schema v1) is a labeled upstream-marker row.
+Plan §11 requires seven categories before any sentence like "Rust is within
+X% of C" is written without per-corpus qualification; this section is the
+procedure for the multi-category extension (additive schema v2 over v1).
+
+### Fixed contract (harness + driver)
+
+The multi-category driver extends `scripts/bench_compare.c`/`.sh` so one
+binary measures a category at a time:
+
+```bash
+./bench_compare [category]    # category omitted => anchor REQ corpus
+```
+
+Category set (plan §11 order): `tiny`, `typical`, `large-headers`,
+`response`, `chunked`, `malformed`, `streaming`. Output tokens per run:
+`CATEGORY <name>`, `ITERS <n>`, `TIMER <label> <res_ns>`, and per trial
+`TRIAL <i> C <ns> R <ns>`. Results land as an **additive schema-v2** JSON:
+every v1 field stays byte-unchanged and present; per-category rows are
+added beside it, never replacing it.
+
+Verified against the shipped driver and a live run
+(`scripts/bench_compare.sh` `CATEGORIES`, `scripts/bench_corpus.h`, and a
+fresh `./bench_compare chunked` execution): the emission grammar is exactly
+`CATEGORY <name>`, `ITERS <n>`, `TIMER clock_gettime(CLOCK_MONOTONIC)
+res_ns=<res>`, then seven `TRIAL <i> C <ns> R <ns>` lines (i = 0..6; trial 0
+is warmup and discarded, 6 counted). Category keys are `tiny`, `typical`,
+`large`, `response`, `chunked`, `malformed`, `streaming` — note `large`, not
+`large-headers`. Per-category iteration defaults live in `bench_corpus.h`
+as `CAT_*_ITERS` (tiny 120M, typical 10M, large 1M, response 30M, chunked
+60M, malformed 400M, streaming 3M logical messages × 8 prefix parses) and
+are emitted in each run's `ITERS` line. v2 JSON field names (from
+`results/bench-compare.json`): top level `schemaVersion: 2`, `generatedUtc`,
+`rev`, `status`, `machine{cpu,cpuCount}`, `timer{name,resNs}`, `protocol`,
+`c{buildCommand,ccVersion,trialsNs,meanNs,minNs}`,
+`rust{artifact,artifactSha256,rustc,profile,tier,trialsNs,meanNs,minNs}`,
+`ratioRustOverC_mean`, `stability`, `corpus{...}` (anchor only), and
+`categories{<key>:{iters,cMeanNs,cMinNs,rMeanNs,rMinNs,ratio,stability,
+cTrialsNs,rTrialsNs,tier}}`. Every v1 anchor field is preserved unchanged;
+the schema is additive as contracted.
+
+### Harness pattern and trial protocol (unchanged from the anchor)
+
+Both implementations live in one binary and are measured in one process,
+interleaved (C,R / R,C alternating trials) so turbo/thermal/background
+drift is common-mode; each side calls through the same out-of-line shape
+(C oracle = renamed symbols; Rust = release cdylib import — the shipped
+artifact, per the bench-seam rule above). Same buffers, same `ITERS`, same
+process, same trial window. Seven trials per category with trial 0
+discarded as warmup (6 counted). Timer is in-process
+`clock_gettime(CLOCK_MONOTONIC)` (measured resolution 100 ns on this
+machine); raw trial lines are retained (`target/bench-compare/trials.txt`)
+beside the mean/min/spread aggregates and `trialsNs` arrays.
+
+### Per-category iteration scaling (rationale)
+
+One fixed `ITERS` across all seven categories would be wrong twice: 10M on
+the 1 MB chunked corpus would take hours, and a tiny request would spend
+extra wall time re-saturating branch predictors that already overfit the
+single-corpus anchor. Each category therefore sets `ITERS` so a single
+per-side trial occupies a comparable wall-clock band (~0.1–1 s), keeping
+enough samples for a stable mean while bounding total campaign time. The
+chosen `ITERS` is recorded per row in the v2 JSON; per-row `ns/parse` is
+always recomputable as `meanNs / ITERS`. ns/parse and ratios are comparable
+only within a category — cross-category aggregation into one "Rust vs C"
+figure is explicitly not produced.
+
+Verified: tiny 120,000,000; typical 10,000,000; large 1,000,000; response
+30,000,000; chunked 60,000,000; malformed 400,000,000; streaming 3,000,000
+(logical messages — 8 prefix parses each). These match `bench_corpus.h`
+`CAT_*_ITERS` one-for-one and the recorded `categories.<key>.iters` values
+in `results/bench-compare.json`. The fixed-contract guarantee holds as
+stated: both sides run the same `ITERS` in the same trial, and the value is
+emitted per run and recorded per row.
+
+### Tier discipline
+
+The anchor comparison is **C `-O2` vs the pinned release profile**
+(opt-level=2, codegen-units=1, lto, overflow/debug off, unwind) — the only
+basis for any headline claim. `-O3` and `-march=native` runs are labeled
+side rows only (`C_OPT`/`RUSTFLAGS`/`TIER` env, written to `JSON_OUT`
+files such as `results/bench-compare-o3.json` and
+`results/bench-compare-native.json`), never mixed into the anchor. A
+native-C number's fair counterpart is native Rust (`gcc -O3 -march=native`
+vs `-C target-cpu=native`); a native-C vs scalar-Rust difference (the 1.45
+native row) quantifies the SIMD prize — it is not an anchor result.
+
+### Honest limits (read before trusting any number)
+
+- Single-machine Windows runs (i5-12400F, Atlas power scheme, w64devkit
+  GCC 16.2.0): numbers are machine-specific, not portable claims.
+- No CPU pinning, governor control, or background isolation. Interleaving
+  makes drift common-mode but cannot remove it; per-trial spread is
+  recorded (`cspread`/`rspread`) and `stability` flags a >5% spread.
+- In-process whole-loop timer only: latency *distributions* (p50/p95/p99)
+  cannot be derived from it (see §12 mapping).
+- `malformed` measures the **rejection path** (early-exit cost until the
+  offending byte), not steady-state full-parse throughput; `streaming`
+  measures **incremental delivery** (per-call seam + decoder state carry),
+  not single-shot latency; `chunked` large is dominated by bulk
+  `copy_within`, so its ns/parse is not comparable to a tiny request's.
+- Every figure is labeled an internal engineering number, not a
+  publication claim (schema `status` field).
+
+### Plan §11 categories → corpus source → status
+
+| §11 category | Corpus source (this tree) | Status |
+|---|---|---|
+| Tiny request | `tests/corpus/request/valid/01-basic.http` (+ hand-minimal REQ) | difftest-covered; driver row live: 36 B hand-minimal GET (identical bytes to `01-basic.http`), 120M iters |
+| Typical request | `CAT_TYPICAL_MSG` (~330 B POST, 9 headers, `scripts/bench_corpus.h`) — NOT the anchor REQ below | driver row live, 10M iters |
+| (Anchor, not a §11 row) | fixed upstream REQ (~620 B, 11 headers, `reference/bench.c` macro) | running since Phase 0 (schema v1); kept as the labeled upstream-marker row, never mixed into category claims |
+| Large headers | `tests/corpus/request/valid/24-seventy-headers.http`, `18-long-path.http`; `tests/corpus/headers/valid/08-many-headers.http` | difftest-covered; driver row live: embedded 64-header × 64-B-value message built once by `cat_large_build` (~4.9 KB), 1M iters |
+| Response parsing | `tests/corpus/response/valid/*` (15 files, incl. `09-long-reason`, `15-twenty-headers`) | difftest-covered; driver row live: ~150 B status + 4 headers, 30M iters |
+| Chunked decoding | `tests/corpus/chunked/valid/*` (12 files, incl. `01-single`, `08-big-1MB`) | difftest-covered; driver row live: 38 B three-data-chunk stream (19 decoded, ret == 2), 60M iters |
+| Malformed input | `tests/corpus/{request,response,headers,chunked}/malformed/*` (37+19+15+19 files) | difftest-covered — rejection-path semantics (see limits); driver row live: 18 B early-reject `G@T / HTTP/1.1...` (ret == -1), 400M iters |
+| Streaming | same buffers delivered across split points (difftest streaming shapes: per-prefix, `last_len` chain) | difftest-covered — incremental-delivery semantics; driver row live: 8 staged prefixes of the typical message (3M logical = 24M parse calls) |
+
+Corpus dirs and file names verified by `ls tests/corpus/...` and the totals
+in `results/difftest-*.log` (`files=60/34/31/31`). The driver's concrete
+per-category corpus pick, `ITERS`, and row emission are the driver lane's
+deliverable.
+
+### Plan §12 metrics → where recorded
+
+| §12 metric | Where recorded | Note |
+|---|---|---|
+| ns/parse | bench JSON: `meanNs`/`minNs` per side per row; per-row `ns/parse = meanNs / ITERS` | headline metric; per-category only |
+| Throughput (req/s) | derived = `1e9 / ns_per_parse`; not separately measured | derived field, not a new measurement [driver/reporting lane] |
+| Bytes/s | derived = req/s × that row's corpus length | same |
+| p50/p95/p99 | **deferred** — whole-loop aggregate timing cannot yield a per-iteration distribution; needs a per-iteration sampling harness that does not exist yet (consistent with `results/README.md`) | do not retrofit |
+| CPU usage | **deferred** — not meaningful for an in-cache single-thread loop on a shared desktop; needs isolated infra | |
+| Peak memory | **deferred** — parser is allocation-free by construction (verified property); static footprint only | |
+| Allocations per parse | 0 — established property, not a bench number | |
+| Binary/library size | **deferred** — absent from schema v1 and NOT added by schema v2 (verified: no size keys in the v2 JSON); capture step remains a future reporting-lane item | |
+
+### Plan §13 rules → honored or known gap
+
+| §13 rule | Status | How |
+|---|---|---|
+| Same machine | Honored | single machine every run; identity in every JSON (`machine`) and `baseline.json` |
+| CPU governor/power settings | Partial — recorded, not controlled | Atlas scheme recorded; no governor control on this Windows consumer plan (known gap) |
+| Compiler versions | Honored | `ccVersion` + `rustc` per file |
+| Optimization level | Honored | tier discipline above; anchor = C `-O2` vs pinned release profile |
+| Same input corpus | Honored | same buffers to both implementations in-process; anchor zero-drift by construction (REQ include) |
+| Same iteration count | Honored per trial | same `ITERS` both sides; category scaling recorded per row |
+| Warmups | Honored | trial 0 discarded; 6 counted |
+| Multiple runs | Honored | 7 trials per category |
+| Report mean/median/stddev | Partial — mean/min today | verified: v2 records meanNs/minNs plus raw trialsNs per row but does NOT compute median/stddev; both remain derivable from trialsNs (and the retained target/bench-compare/*.txt) |
+| Prefer raw outputs | Honored | `trials.txt` retained; `trialsNs` arrays in JSON |
+| Never use debug builds | Honored | release cdylib only (`cargo build --release`); artifact sha256 recorded |
+
 ## Optimization decisions (audited, measured where stated)
 
 - `catch_unwind` stays on all four parsing exports: the seam cost is inside
