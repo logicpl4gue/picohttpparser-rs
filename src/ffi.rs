@@ -2,9 +2,10 @@
 //!
 //! Signatures and struct layouts mirror `reference/picohttpparser.h` at pin
 //! `f4d94b48b31e0abae029ebeafcfd9ca0680ede58`. `phr_parse_request`
-//! (Milestone 2, via `crate::request`) and `phr_parse_response` (Milestone 3,
-//! via `crate::response`) are real parsers; the remaining three are still
-//! **stubs** that pin the ABI and return failure until Milestones 4+.
+//! (Milestone 2, via `crate::request`), `phr_parse_response` (Milestone 3,
+//! via `crate::response`) and `phr_parse_headers` (Milestone 4, shared
+//! core wired straight through) are real parsers; `phr_decode_chunked` and
+//! `phr_decode_chunked_is_in_data` are still **stubs** until Milestone 5.
 //!
 //! This module is the crate's entire `unsafe` surface: the parsing core only
 //! reports offsets, and this seam turns them into output pointers.
@@ -342,24 +343,86 @@ fn parse_response_inner(
 /// Parses a standalone header block.
 ///
 /// Returns bytes consumed (>= 0), `-2` for partial input, `-1` on failure.
-/// **Milestone 1 stub**: always returns `-1`; real parsing is added in
-/// Milestone 4.
+/// Behaviorally identical to C's `phr_parse_headers` (Milestone 4): the
+/// shared [`core::parse_headers`](crate::core::parse_headers) with the
+/// `last_len` slowloris pre-check and the completed-header count published
+/// on success and error alike.
 ///
 /// # Safety
 ///
-/// The stub does not dereference any argument. When real parsing lands, all
-/// pointers must be valid: `buf`/`len` describe the input buffer, `headers`
-/// must point to `*num_headers` entries, and `num_headers` must point to
-/// writable storage.
+/// `buf`/`len` must describe a readable input buffer, `headers` must point
+/// to `*num_headers` writable entries, and `num_headers` must point to
+/// writable storage. Null `num_headers` (or a null input with `len != 0`)
+/// fails closed with `-1` instead of faulting. A panic anywhere inside maps
+/// to `-1` per the crate's pinned panic policy.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn phr_parse_headers(
-    _buf: *const c_char,
-    _len: usize,
-    _headers: *mut PhrHeader,
-    _num_headers: *mut usize,
-    _last_len: usize,
+    buf: *const c_char,
+    len: usize,
+    headers: *mut PhrHeader,
+    num_headers: *mut usize,
+    last_len: usize,
 ) -> c_int {
-    -1
+    // `match` (not `unwrap_or`) so the -1 mapping stays explicit;
+    // `unwrap_or` would also trip the crate's `clippy::unwrap_used` deny.
+    #[allow(clippy::manual_unwrap_or)]
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        parse_headers_inner(buf, len, headers, num_headers, last_len)
+    })) {
+        Ok(r) => r,
+        Err(_) => -1,
+    }
+}
+
+/// `phr_parse_headers` minus the unwind guard.
+fn parse_headers_inner(
+    buf: *const c_char,
+    len: usize,
+    headers: *mut PhrHeader,
+    num_headers: *mut usize,
+    last_len: usize,
+) -> c_int {
+    if num_headers.is_null() || (len != 0 && buf.is_null()) {
+        return -1;
+    }
+    // SAFETY: outputs checked non-null above; count zeroed first like C.
+    unsafe {
+        let max = *num_headers;
+        *num_headers = 0;
+        if max != 0 && headers.is_null() {
+            return -1;
+        }
+        let data: &[u8] = if len == 0 {
+            &[]
+        } else {
+            // SAFETY: non-null (checked) + caller-guaranteed `len` bytes.
+            std::slice::from_raw_parts(buf as *const u8, len)
+        };
+        let mut sink = RawSink {
+            base: buf,
+            slots: headers,
+            cap: max,
+        };
+        // Completed-header count, published on success AND error (C leaves
+        // the completed prefix observable when parsing fails midway).
+        let mut count = 0usize;
+        // Slowloris pre-check comes before any parsing, exactly like C.
+        if last_len != 0
+            && let Err(e) = crate::core::is_complete(data, last_len)
+        {
+            return match e {
+                crate::core::Error::Partial => -2,
+                crate::core::Error::Malformed => -1,
+            };
+        }
+        let r = match crate::core::parse_headers(data, 0, &mut sink, &mut count) {
+            Ok(pos) => pos as c_int,
+            Err(crate::core::Error::Partial) => -2,
+            Err(crate::core::Error::Malformed) => -1,
+        };
+        *num_headers = count;
+        r
+    }
 }
 
 /// Decodes chunked-transfer encoding in place.

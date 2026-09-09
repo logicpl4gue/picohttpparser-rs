@@ -1,4 +1,5 @@
-//! ABI-shell integration tests (Milestone 1; updated Milestone 2).
+//! ABI integration tests (Milestone 1 shell; null-guard wording updated
+//! Milestones 2–4 as each parser went live).
 //!
 //! Layout pins plus fail-closed entry guards. `phr_parse_request` is a real
 //! parser since M2, but these all-null calls exercise only its null-pointer
@@ -42,7 +43,7 @@ fn request_null_guards_return_error() {
 }
 
 #[test]
-fn stub_phr_parse_response_returns_error() {
+fn response_null_guards_return_error() {
     let ret = unsafe {
         picohttpparser_rs::ffi::phr_parse_response(
             null(),
@@ -60,7 +61,7 @@ fn stub_phr_parse_response_returns_error() {
 }
 
 #[test]
-fn stub_phr_parse_headers_returns_error() {
+fn headers_null_guards_return_error() {
     let ret =
         unsafe { picohttpparser_rs::ffi::phr_parse_headers(null(), 0, null_mut(), null_mut(), 0) };
     assert_eq!(ret, -1);

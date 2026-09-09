@@ -101,11 +101,12 @@ time target/c-baseline/bench            # 10,000,000 iterations, exits 0 on succ
   aborts, never UB through the ABI); M2+ bodies get `catch_unwind` → `-1`,
   and the core stays panic-free (`unwrap_used`/`expect_used` denied).
 
-## Milestone 2/3 differential (Layer 2, request + response parsers)
+## Milestone 2/3/4 differential (Layer 2, request + response + headers)
 
 ```bash
 CC=gcc bash scripts/diff_request.sh    # builds oracle + harness, runs corpus, tees results/difftest-request.log
 CC=gcc bash scripts/diff_response.sh   # same for responses, tees results/difftest-response.log
+CC=gcc bash scripts/diff_headers.sh    # same for header blocks, tees results/difftest-headers.log
 ```
 
 What it does: compiles `reference/picohttpparser.c` with `-D` renames

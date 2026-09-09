@@ -3,7 +3,7 @@ name = "picohttpparser-rs"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-description = "Drop-in Rust rewrite of PicoHTTPParser — Milestone 3 (request+response live, rest stubs)"
+description = "Drop-in Rust rewrite of PicoHTTPParser — Milestone 4 (request+response+headers live, chunked stubs)"
 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]

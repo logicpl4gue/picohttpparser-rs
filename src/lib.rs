@@ -20,8 +20,10 @@
 //!   oracle with 0 mismatches (`scripts/diff_request.sh`).
 //! - ✅ Milestone 3 (response parser): `response` reuses the shared core;
 //!   20,678 differential cases with 0 mismatches (`scripts/diff_response.sh`).
-//! - ⏳ Milestone 4+ (headers/chunked parsers, fuzzing, benchmarks):
-//!   not started.
+//! - ✅ Milestone 4 (standalone header parser): `phr_parse_headers` wired
+//!   straight to the shared core; 21,728 differential cases with 0 mismatches
+//!   (`scripts/diff_headers.sh`).
+//! - ⏳ Milestone 5+ (chunked decoder, fuzzing, benchmarks): not started.
 
 #![warn(missing_docs)]
 
