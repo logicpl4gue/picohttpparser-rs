@@ -12,6 +12,7 @@ by scripts — **not hand-edited, never fabricated**.
 | `difftest-request.log`, `-response.log`, `-headers.log`, `-chunked.log` | Layer-2 differential totals + run identity (`run_utc`, `rev`). |
 | `bench-compare.json` (+ `-o3`, `-native` tiers) | Same-session C-vs-Rust numbers with artifact hashes (schema v1, own versioning). |
 | `integration.log` | M8 loopback transcripts (oracle + Rust, must be byte-identical) + ctypes transcript + provenance (rev, dirtiness, artifact hashes). |
+| `EVIDENCE.md` | M10 final evidence table (plan §17): compat + fuzz + bench + impl + integration totals with primary-record citations. Hand-maintained aggregation — every figure must match the machine record it cites. |
 
 Rules:
 
