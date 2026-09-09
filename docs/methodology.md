@@ -380,6 +380,15 @@ deliverable.
   gates. Later re-runs move within noise (retained anchor
   `results/bench-compare.json` is the current record, not this paragraph).
   Still an internal number, not a publication claim (single corpus).
+- SWAR window 8 B → 16 B dual independent checks (2026-09-09): one
+  `get(p..p+16)` + two `has_outside_printable` halves, dirty-half fallback
+  (lo-dirty resumes exact loop at `p`, hi-dirty at `p+8`, tails stay short).
+  Same-session A/B: large 0.8147 → 0.6623, anchor 0.9742 → 0.8521; full
+  suite confirms large **0.6416**, anchor **0.8550 (stability OK)**.
+  KEPT — cage fully green (133,352 differential, fuzz, 7/7 suites, silent
+  clippy), no new proof needed (`swar_filter_sound` stands per half).
+  Untouched-path drift check (chunked +0.039, malformed +0.018 same night)
+  bounds the response +0.039 wobble as session drift, not a regression.
 - `rtrim` rewrite and `#[inline]` attributes: REJECTED after disassembly
   evidence — `parse_token`/`get_token_to_eol`/`rtrim` are already fully
   inlined (no symbols emitted) and `parse_headers` contains zero panic

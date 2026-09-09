@@ -199,6 +199,30 @@ pub(crate) fn get_token_to_eol(buf: &[u8], pos: usize) -> Result<((usize, usize)
     // controls, bytes >= 0x80 — all legal-or-decided in values) falls through
     // to the exact byte loop, which makes the real decision. Windowed with
     // `get`, so no read ever passes `len` (guard-page safe).
+    // 16 B window as two independent 8 B checks (A/B-tested; a single u128
+    // check would chain halves by real borrow-carry and need a new proof,
+    // while dual-8 B keeps `swar_filter_sound` as the proof, unchanged).
+    // Dirty-half fallback: lo-dirty resumes the exact loop at `p`,
+    // hi-dirty at `p + 8`, so scalar tails stay <= 8 B + CRLF.
+    while let Some(w) = buf.get(p..p + 16) {
+        let Ok(a) = <&[u8; 16]>::try_from(w) else {
+            break; // unreachable: the range above is exactly 16 long
+        };
+        let Ok(lo) = <&[u8; 8]>::try_from(&a[..8]) else {
+            break; // unreachable: `split` halves of 16 are exactly 8
+        };
+        let Ok(hi) = <&[u8; 8]>::try_from(&a[8..]) else {
+            break; // unreachable: same as above
+        };
+        if has_outside_printable(u64::from_le_bytes(*lo)) {
+            break;
+        }
+        if has_outside_printable(u64::from_le_bytes(*hi)) {
+            p += 8;
+            break;
+        }
+        p += 16;
+    }
     while let Some(w) = buf.get(p..p + 8) {
         let Ok(a) = <&[u8; 8]>::try_from(w) else {
             break; // unreachable: the range above is exactly 8 long
