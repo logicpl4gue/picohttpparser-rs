@@ -46,9 +46,16 @@ cp "$ROOT/target/release/picohttpparser_rs.dll" "$OUT/"
 echo "== smoke campaign: seed=$SEED iters=$ITERS entry=$ENTRY"
 SEED_FILES=$(find "$ROOT/tests/corpus/request" "$ROOT/tests/corpus/response" \
   "$ROOT/tests/corpus/headers" -type f | sort)
+# FUZZ_TIMEOUT_S bounds the run so a hang stalls CI loudly instead of
+# forever (P1-1); timeout's 124 surfaces distinctly from mismatch exit 1.
+FUZZ_TIMEOUT_S="${FUZZ_TIMEOUT_S:-1800}"
 _T0=$(date +%s%N)
 # shellcheck disable=SC2086
-FUZZ_CASE_DIR="$OUT" "$OUT/fuzz_parse" "$SEED" "$ITERS" "$ENTRY" $SEED_FILES
+if command -v timeout >/dev/null 2>&1; then
+  FUZZ_CASE_DIR="$OUT" timeout "$FUZZ_TIMEOUT_S" "$OUT/fuzz_parse" "$SEED" "$ITERS" "$ENTRY" $SEED_FILES
+else
+  FUZZ_CASE_DIR="$OUT" "$OUT/fuzz_parse" "$SEED" "$ITERS" "$ENTRY" $SEED_FILES
+fi
 RC=$?
 _T1=$(date +%s%N)
 echo "elapsed_ms=$(( (_T1 - _T0) / 1000000 ))"

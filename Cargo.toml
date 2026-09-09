@@ -2,6 +2,10 @@
 name = "picohttpparser-rs"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+# Edition-2024 floor (older compilers reject the manifest), NOT a tested
+# MSRV: only 1.96.1 is ever run here. No rust-toolchain.toml on purpose —
+# it would force downloads for zero benefit (no remote, no CI consumes it).
 license = "MIT"
 description = "Drop-in Rust rewrite of PicoHTTPParser — all entry points live (M2-M5), zero-copy, differential-tested"
 

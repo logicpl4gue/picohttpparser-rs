@@ -99,9 +99,11 @@ run_one() {
 }
 
 # --- stats_one <rawfile> ---------------------------------------------------
-# Parses trials (skip trial 0 warmup) and computes mean/min/spread per side.
-# Sets: n cmean cmin rmean rmin cspread rspread ratio c_runs r_runs iters
-# timer_res via eval on stdout. Exits nonzero if no counted trials.
+# Parses trials (skip trial 0 warmup) and computes mean/min/median/spread
+# per side plus paired-ratio mean/stddev (per-trial r_i/c_i keeps the
+# interleaved pairing that the pooled ratio throws away).
+# Sets: n cmean cmin cmed rmean rmin rmed cspread rspread ratio prmean prsd
+# c_runs r_runs iters timer_res via eval on stdout. Exits nonzero if empty.
 stats_one() {
     local raw="$1"
     local STATS
@@ -116,10 +118,17 @@ stats_one() {
         for (i in c) { cs+=c[i]; rs+=r[i]
           if (c[i]<cmin) cmin=c[i]; if (c[i]>cmax) cmax=c[i]
           if (r[i]<rmin) rmin=r[i]; if (r[i]>rmax) rmax=r[i] }
-        printf "n=%d cmean=%.1f cmin=%.0f rmean=%.1f rmin=%.0f cspread=%.3f rspread=%.3f ratio=%.4f iters=%s tres=%s", \
-          ni, cs/ni, cmin, rs/ni, rmin, (cmax-cmin)/(cs/ni), (rmax-rmin)/(rs/ni), (rs/ni)/(cs/ni), iters, tres
+        for (i=0; i<ni; i++) { sc[i]=c[i]; sr[i]=r[i] }
+        for (i=1; i<ni; i++) { t=sc[i]; j=i-1; while (j>=0 && sc[j]>t) { sc[j+1]=sc[j]; j-- } sc[j+1]=t }
+        for (i=1; i<ni; i++) { t=sr[i]; j=i-1; while (j>=0 && sr[j]>t) { sr[j+1]=sr[j]; j-- } sr[j+1]=t }
+        if (ni % 2 == 1) { cmed=sc[(ni-1)/2]; rmed=sr[(ni-1)/2] }
+        else { cmed=(sc[ni/2-1]+sc[ni/2])/2; rmed=(sr[ni/2-1]+sr[ni/2])/2 }
+        prm=0; for (i=0; i<ni; i++) { pr[i]=r[i]/c[i]; prm+=pr[i] } prm/=ni
+        prsd=0; for (i=0; i<ni; i++) { prsd+=(pr[i]-prm)^2 } prsd=sqrt(prsd/ni)
+        printf "n=%d cmean=%.1f cmin=%.0f cmed=%.0f rmean=%.1f rmin=%.0f rmed=%.0f cspread=%.3f rspread=%.3f ratio=%.4f prmean=%.4f prsd=%.4f iters=%s tres=%s", \
+          ni, cs/ni, cmin, cmed, rs/ni, rmin, rmed, (cmax-cmin)/(cs/ni), (rmax-rmin)/(rs/ni), (rs/ni)/(cs/ni), prm, prsd, iters, tres
       }' "$raw") || { echo "no counted trials parsed from $raw"; return 1; }
-    eval "$STATS"  # n cmean cmin rmean rmin cspread rspread ratio iters tres
+    eval "$STATS"  # n cmean cmin cmed rmean rmin rmed cspread rspread ratio prmean prsd iters tres
     c_runs=$(awk '/^TRIAL [1-6] /{printf "%s%s", sep, $4; sep=","}' "$raw")
     r_runs=$(awk '/^TRIAL [1-6] /{printf "%s%s", sep, $6; sep=","}' "$raw")
     [ -n "$n" ] || { echo "empty stats from $raw"; return 1; }
@@ -130,21 +139,25 @@ stats_one() {
 CPU_MODEL="$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2- | sed 's/^ *//;s/ *$//')"
 [ -n "$CPU_MODEL" ] || CPU_MODEL="unknown"
 CPU_COUNT="$(nproc 2>/dev/null || echo "${NUMBER_OF_PROCESSORS:-unknown}")"
+OS_INFO="$(uname -srmo 2>/dev/null || uname -srm 2>/dev/null || echo unknown)"
+POWER_SCHEME="$(powercfg //getactivescheme 2>/dev/null | sed -n 's/.*(\(.*\)).*/\1/p')"
+[ -n "$POWER_SCHEME" ] || POWER_SCHEME="unknown"
 
 # --- anchor run -------------------------------------------------------------
 echo "== anchor run (interleaved trials)"
 run_one trials || { echo "anchor run failed"; exit 1; }
 stats_one "$OUT/trials.txt" || exit 1
 A_C_RUNS="$c_runs"; A_R_RUNS="$r_runs"
-A_CM=$cmean; A_CN=$cmin; A_RM=$rmean; A_RN=$rmin
-A_RATIO=$ratio; A_CSP=$cspread; A_RSP=$rspread; A_ITERS=$iters; A_TRES=$tres
+A_CM=$cmean; A_CN=$cmin; A_CMED=$cmed; A_RM=$rmean; A_RN=$rmin; A_RMED=$rmed
+A_RATIO=$ratio; A_PRM=$prmean; A_PRSD=$prsd
+A_CSP=$cspread; A_RSP=$rspread; A_ITERS=$iters; A_TRES=$tres
 A_STAB="OK"
 awk "BEGIN{exit !(($A_CSP > 0.05) || ($A_RSP > 0.05))}" && A_STAB="CHECK-spread>5%"
 echo "== anchor: $n trials cmean=${A_CM} rmean=${A_RM} ratio=${A_RATIO} stability=${A_STAB}"
 
 # --- category runs ----------------------------------------------------------
-declare -A CAT_CM CAT_CN CAT_RM CAT_RN CAT_RAT CAT_STAB CAT_ITERS \
-       CAT_C_RUNS CAT_R_RUNS
+declare -A CAT_CM CAT_CN CAT_CMED CAT_RM CAT_RN CAT_RMED CAT_RAT CAT_PRM \
+       CAT_PRSD CAT_STAB CAT_ITERS CAT_C_RUNS CAT_R_RUNS
 CAT_JSON=""
 for cat in "${CATEGORIES[@]}"; do
     if ! run_one "$cat" "$cat"; then
@@ -159,8 +172,9 @@ for cat in "${CATEGORIES[@]}"; do
         exit 1
     fi
     stats_one "$OUT/$cat.txt" || exit 1
-    CAT_CM[$cat]=$cmean; CAT_CN[$cat]=$cmin; CAT_RM[$cat]=$rmean; CAT_RN[$cat]=$rmin
-    CAT_RAT[$cat]=$ratio; CAT_ITERS[$cat]=$iters
+    CAT_CM[$cat]=$cmean; CAT_CN[$cat]=$cmin; CAT_CMED[$cat]=$cmed
+    CAT_RM[$cat]=$rmean; CAT_RN[$cat]=$rmin; CAT_RMED[$cat]=$rmed
+    CAT_RAT[$cat]=$ratio; CAT_PRM[$cat]=$prmean; CAT_PRSD[$cat]=$prsd; CAT_ITERS[$cat]=$iters
     CAT_C_RUNS[$cat]=$c_runs; CAT_R_RUNS[$cat]=$r_runs
     s="OK"; awk "BEGIN{exit !(($cspread > 0.05) || ($rspread > 0.05))}" && s="CHECK-spread>5%"
     CAT_STAB[$cat]=$s
@@ -174,22 +188,36 @@ DLL_SHA="$(sha256sum "$ROOT/target/release/picohttpparser_rs.dll" 2>/dev/null | 
 RUSTC_V="$(rustc --version 2>/dev/null || echo unknown)"
 CC_V="$($CC --version 2>/dev/null | head -n1 || echo unknown)"
 CORPUS_SHA="$(sha256sum "$REF/bench.c" 2>/dev/null | cut -d' ' -f1)"
+HARNESS_SHA="$(sha256sum "$ROOT/scripts/bench_compare.c" 2>/dev/null | cut -d' ' -f1)"
+BCORPUS_SHA="$(sha256sum "$ROOT/scripts/bench_corpus.h" 2>/dev/null | cut -d' ' -f1)"
+# NDEBUG state matters: bench.c asserts are live without it (extra branch
+# per iteration on the C side), stripped with it. Record, don't assume.
+case " $C_OPT " in
+  *-DNDEBUG*) ASSERT_STATE="NDEBUG-set (C asserts stripped)" ;;
+  *) ASSERT_STATE="NDEBUG-unset (C asserts live, Rust explicit branch)" ;;
+esac
 CAT_ROW=""
 for cat in "${CATEGORIES[@]}"; do
     row=$(printf '    "%s": {
       "iters": %s,
       "cMeanNs": %s,
       "cMinNs": %s,
+      "cMedianNs": %s,
       "rMeanNs": %s,
       "rMinNs": %s,
+      "rMedianNs": %s,
       "ratio": %s,
+      "pairedRatioMean": %s,
+      "pairedRatioStddev": %s,
       "stability": "%s",
       "cTrialsNs": [%s],
       "rTrialsNs": [%s],
       "tier": "%s"
     }' \
-        "$cat" "${CAT_ITERS[$cat]}" "${CAT_CM[$cat]}" "${CAT_CN[$cat]}" "${CAT_RM[$cat]}" "${CAT_RN[$cat]}" \
-        "${CAT_RAT[$cat]}" "${CAT_STAB[$cat]}" "${CAT_C_RUNS[$cat]}" "${CAT_R_RUNS[$cat]}" "$TIER")
+        "$cat" "${CAT_ITERS[$cat]}" "${CAT_CM[$cat]}" "${CAT_CN[$cat]}" "${CAT_CMED[$cat]}" \
+        "${CAT_RM[$cat]}" "${CAT_RN[$cat]}" "${CAT_RMED[$cat]}" "${CAT_RAT[$cat]}" \
+        "${CAT_PRM[$cat]}" "${CAT_PRSD[$cat]}" "${CAT_STAB[$cat]}" \
+        "${CAT_C_RUNS[$cat]}" "${CAT_R_RUNS[$cat]}" "$TIER")
     [ -n "$CAT_ROW" ] && CAT_ROW="$CAT_ROW,"
     CAT_ROW="$CAT_ROW$row"
 done
@@ -197,13 +225,15 @@ done
 mkdir -p "$ROOT/results"
 cat > "$JSON" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "generatedUtc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "rev": "$(jstr "$REV")",
   "status": "internal-engineering-number (measurement, not a publication claim)",
   "machine": {
     "cpu": "$(jstr "$CPU_MODEL")",
-    "cpuCount": "$(jstr "$CPU_COUNT")"
+    "cpuCount": "$(jstr "$CPU_COUNT")",
+    "os": "$(jstr "$OS_INFO")",
+    "powerScheme": "$(jstr "$POWER_SCHEME")"
   },
   "timer": {
     "name": "clock_gettime(CLOCK_MONOTONIC), in-process",
@@ -213,9 +243,13 @@ cat > "$JSON" <<EOF
   "c": {
     "buildCommand": "$(jstr "$CC $C_OPT (-Dmain=bench_c_main -Dphr_parse_request=c_phr_parse_request via bench_compare.c include of reference/bench.c) + renamed oracle object")",
     "ccVersion": "$(jstr "$CC_V")",
+    "assertState": "$(jstr "$ASSERT_STATE")",
     "trialsNs": [$A_C_RUNS],
     "meanNs": $A_CM,
-    "minNs": $A_CN
+    "minNs": $A_CN,
+    "medianNs": $A_CMED,
+    "pairedRatioMean": $A_PRM,
+    "pairedRatioStddev": $A_PRSD
   },
   "rust": {
     "artifact": "target/release/picohttpparser_rs.dll",
@@ -225,10 +259,15 @@ cat > "$JSON" <<EOF
     "tier": "$(jstr "$TIER")",
     "trialsNs": [$A_R_RUNS],
     "meanNs": $A_RM,
-    "minNs": $A_RN
+    "minNs": $A_RN,
+    "medianNs": $A_RMED
   },
   "ratioRustOverC_mean": $A_RATIO,
   "stability": "$A_STAB",
+  "harness": {
+    "benchSourceSha256": "$(jstr "$HARNESS_SHA")",
+    "corpusHeaderSha256": "$(jstr "$BCORPUS_SHA")"
+  },
   "corpus": {
     "file": "reference/bench.c REQ macro (included verbatim, zero drift by construction)",
     "sha256": "$(jstr "$CORPUS_SHA")",

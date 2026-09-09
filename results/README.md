@@ -22,7 +22,7 @@ Rules:
 3. Report losses and wins; the goal is a controlled experiment, not a
    claim-file.
 
-## `baseline.json` schema (v5)
+## `baseline.json` schema (v6; v6 adds top-level `rev` so the M0 record maps to a commit)
 
 Top-level: `schemaVersion` (number), `generatedUtc` (string),
 `generatedBy` (string), `pin` {`repository`, `commit`, `short`,
@@ -41,19 +41,28 @@ Top-level: `schemaVersion` (number), `generatedUtc` (string),
 History: v1 = M0 baseline; v2 = test-suite counts; v3 = bench trials +
 machine identity + corpus metadata; v4 = `upstreamVsRust` (gate: unmodified
 upstream `test.c` linked against the Rust cdylib); v5 = median/stddev +
-parsed (not hardcoded) iteration count. Percentiles (plan §12 p50/p95/p99)
+parsed (not hardcoded) iteration count; v6 = top-level `rev` (commit the
+M0 record was generated from). Percentiles (plan §12 p50/p95/p99)
 are deliberately absent: they apply to per-iteration latency harnesses, not
 whole-loop aggregate timing.
 
-## `bench-compare.json` schema (v1, own versioning)
+## `bench-compare.json` schema (v3, own versioning; v2 added categories, v3 adds medians/paired-ratios/os+powerScheme/harness-hashes/assertState)
 
 Same-session C-vs-Rust record from `scripts/bench_compare.sh`: `rev`,
-`status` (always labeled internal-engineering-number), `machine`, `timer`
-(in-process `clock_gettime`, measured resolution), `protocol`, `c`
-{`buildCommand`, `ccVersion`, trials, mean/min}, `rust` {artifact path +
-sha256, rustc, pinned profile flags, trials, mean/min}, `ratioRustOverC_mean`,
-`stability` (`OK` or `CHECK` with reason), `corpus` {file = bench.c REQ
-macro included verbatim, sha, scope, iterations}, plus `tier` (`anchor` by
-default). Labeled P8 tiers live beside it (`bench-compare-o3.json`,
-`bench-compare-native.json`, via `C_OPT`/`RUSTFLAGS`/`TIER`/`JSON_OUT` env
-on the same script) — the anchor file is never overwritten by a tier run.
+`status` (always labeled internal-engineering-number), `machine` (`cpu`,
+`cpuCount`, `os`, `powerScheme`), `timer` (in-process `clock_gettime`,
+measured resolution), `protocol`, `c` {`buildCommand`, `ccVersion`,
+`assertState` (NDEBUG-set/unset — the C per-iteration check costs a branch
+unless stripped), trials, mean/min/median}, `rust` {artifact path + sha256,
+rustc, pinned profile flags, trials, mean/min/median}, `ratioRustOverC_mean`
+plus `pairedRatioMean`/`pairedRatioStddev` (per-trial rᵢ/cᵢ keeps the
+interleaving pairing the pooled ratio throws away), `stability` (`OK` or
+`CHECK` with reason), `corpus` {file = bench.c REQ macro included verbatim,
+sha, scope, iterations}, `harness` {source + corpus-header sha256}, plus
+`tier` (`anchor` by default). Per-category rows carry the same median +
+paired-ratio fields. v1 lacked medians, paired ratios, machine
+`os`/`powerScheme`, harness hashes, and `assertState`. Labeled P8 tiers live
+beside it (`bench-compare-o3.json`, `bench-compare-native.json`, via
+`C_OPT`/`RUSTFLAGS`/`TIER`/`JSON_OUT` env on the same script) — the anchor
+file is never overwritten by a tier run. Quoted headline ratios use 2
+decimals; the JSON keeps full precision because raw trials are retained.

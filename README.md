@@ -56,7 +56,7 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
   assertions, 0 failures (`results/upstream-rust.log`, via
   `CC=gcc bash scripts/run_baseline.sh`). All four differential harnesses
   re-run fresh the same day: 132,964 cases, 0 mismatches. Divergences: 0
-  unresolved (3 INTENTIONAL fail-closed rows). Details in
+  unresolved (4 INTENTIONAL fail-closed rows). Details in
   `docs/compatibility.md`.
 - ✅ Milestone 7 (fuzz campaign, plan M6): deterministic differential
   fuzzing, ~1.54M executions, 0 mismatches, 0 crashes either side
@@ -81,7 +81,7 @@ src/                  Rust crate — core.rs (shared safe core), request.rs (M2)
 docs/                 api.md, methodology.md, compatibility.md, divergences.md,
                       fuzzing.md
 results/              baseline.json, README.md (machine-readable evidence)
-scripts/              run_baseline.sh, smoke_abi.c (C link+call test vs staticlib),
+scripts/              run_baseline.sh (C baseline + upstream suite vs Rust),
                       difftest_request.c + diff_request.sh,
                       difftest_response.c + diff_response.sh,
                       difftest_headers.c + diff_headers.sh,
@@ -110,9 +110,10 @@ CC=gcc bash scripts/bench_compare.sh  # same-session C-vs-Rust interleaved bench
 CC=gcc bash scripts/integ_http11.sh   # loopback integration: relinked C consumer
                                        # + ctypes consumer, writes results/integration.log
 CC=gcc scripts/run_baseline.sh   # rebuilds C baseline, verifies pin, writes results/baseline.json
-# C smoke test vs the Rust staticlib (needs cargo build first):
-gcc -Ireference -o target/c-baseline/smoke_abi scripts/smoke_abi.c target/debug/picohttpparser_rs.lib
 (cd reference && sha256sum -c SHA256SUMS)   # verifies pinned reference integrity
+# (retired) scripts/smoke_abi.c asserted M1 stub values and linked the
+# staticlib, which MinGW ld cannot satisfy (MSVC EH residue) — removed;
+# the cdylib link+call path is proven by every diff_*.sh harness instead.
 ```
 
 Honesty policy: `results/baseline.json` contains only real measurements;

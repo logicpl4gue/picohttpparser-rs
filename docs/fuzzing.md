@@ -164,17 +164,16 @@ contains it; aggregates across runs say so explicitly.
 | Unique minimized repros | 0 | 0 | 0 | 0 | — |
 | Rust crashes | 0 | 0 | 0 | 0 | — |
 | C crashes | 0 | 0 | 0 | 0 | — |
-| Diff-gate cases (latest `results/difftest-*.log`) | 87,052 | 20,678 | 21,728 | 3,506 | 8/8 subtests vs Rust cdylib |
-| Unresolved divergences | 0 (3 rows, all INTENTIONAL) | | | | |
+| Diff-gate cases (latest `results/difftest-*.log`) | 87,052 | 20,678 | 21,924 | 3,698 | 8/8 subtests vs Rust cdylib |
+| Unresolved divergences | 0 (4 rows, all INTENTIONAL) | | | | |
 
 Plus 900,000 mixed request/response/headers cases (seeds 7/99, prior retained
-runs) with 0 mismatches. Retained-log aggregate ≈ 1.54M fuzz executions
-(per-entry 300k + mixed 900k + chunked 340,308 across the logs above), 0
-mismatches, 0 crashes on either side. Newest consolidated campaign:
-`target/fuzz/fuzz-all-20260909T032635Z.log` (200k parse + 400,267 chunked
-calls, seed 11, all four gates green); triage validated on a synthetic
-marker (33 B → 6 B in 92 oracle runs); determinism byte-verified (same
-seed ⇒ byte-identical output).
+runs) with 0 mismatches. Newest consolidated campaign:
+`target/fuzz/fuzz-all-20260909T042305Z.log` (200k parse + 398,851 chunked
+calls, seed 11, all four gates green). Retained-log aggregate ≈ 1.94M fuzz
+executions with 0 mismatches and 0 crashes on either side; triage validated
+on a synthetic marker (33 B → 6 B in 92 oracle runs); determinism
+byte-verified (same seed ⇒ byte-identical output).
 
 Status: **first campaign complete 2026-09-09 — clean.** No Rust crash, no C
 crash, no divergence found. Fuzzing stays a standing practice: re-run

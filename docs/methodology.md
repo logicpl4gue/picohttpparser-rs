@@ -139,7 +139,7 @@ shim where the libc lacks it) and links them against
 `target/release/picohttpparser_rs.dll` — *not* the C oracle. The suite's
 guard-page `mmap` input makes this an overread test as well as a behavioral
 one. Results land in `results/upstream-rust.log` with totals in
-`baseline.json:upstreamVsRust` (schema v5); any failure fails the script.
+`baseline.json:upstreamVsRust` (schema v6); any failure fails the script.
 The gate passes iff: this suite is green, every differential log is fresh
 and mismatch-free, and `docs/divergences.md` holds no OPEN/UNRESOLVED row.
 
@@ -183,9 +183,11 @@ may be added later for "fastest possible" comparisons — never mixed into
 the anchor.
 
 Bench-seam rule: measure the **shipped artifact**. Rust numbers must come
-from the `cdylib`/`staticlib` via the same C-harness pattern as
-`scripts/smoke_abi.c` (identical loop, out-of-line calls both sides) — never
-from an rlib-linked Rust harness, which is a different codegen context.
+from the `cdylib` via the same C-harness pattern the `diff_*.sh` gates use
+(identical loop, out-of-line calls both sides) — never from an rlib-linked
+Rust harness, which is a different codegen context. (An earlier
+`smoke_abi.c` staticlib proof was retired: MinGW ld cannot link the MSVC
+staticlib, and its asserts predated live parsers.)
 `scripts/bench_compare.sh` implements this: one binary times the C oracle
 loop and the cdylib loop interleaved (C,R/R,C), in-process, same REQ bytes
 included verbatim from `reference/bench.c`, results in
@@ -348,10 +350,14 @@ deliverable.
 ## Optimization decisions (audited, measured where stated)
 
 - `catch_unwind` stays on all four parsing exports: the seam cost is inside
-  the measured number (no separate estimate needed), and dropping it would
-  trade panic→−1 for panic→abort — a behavior-policy change requiring its
-  own deliberation, not a codegen tweak. Revisit only with a measured
-  seam-delta experiment.
+  the measured number, bounded at ~+3.7 ns/call by the malformed-corpus
+  ratio (1.96× on a ~17-cycle C parse — the pure fixed-cost floor), and
+  dropping it would trade panic→−1 for panic→abort — a behavior-policy
+  change requiring explicit owner direction, not a codegen tweak. Keep.
+  (Disasm: inner `parse_response`/`decode_chunked` emit no symbols — fully
+  inlined into their exports — so there is no isolated panic call site left
+  to audit; any residual panic path lives under the seam guard by
+  construction.)
 - Value-scan batching (8-at-a-time, C-mirror): A/B-tested, measured ~6%
   SLOWER, reverted — LLVM already unrolls the plain loop; manual batching
   added only scaffolding. Do not retry without a new hypothesis.
@@ -371,8 +377,20 @@ deliverable.
 - Labeled tiers (same-session runs, `results/bench-compare-*.json`): anchor
   **0.9469**, O3-pair **0.9888** (both sides faster, gap steady), native-pair
   **1.4499** (C `-march=native` unlocks its pcmpestri path: 2.10s → 1.38s;
-  Rust scalar+SWAR barely moves). The native row quantifies the SIMD prize
-  and the anchor rule stands: never mix native-C into headline claims.
+  Rust scalar+SWAR barely moves). O3-malformed anomaly (Rust malformed
+  ~4.7s at O3 vs ~2.7-3.5s at O2) independently replicated
+  post-restructure — real, unexplained, side-tier only; never headline
+  material. The native row quantifies the SIMD prize and the anchor rule
+  stands: never mix native-C into headline claims.
+- Chunked locals + single epilogue (`decode_chunked` restructure): KEPT on
+  structural grounds with honest numbers — chunked row moved 1.7136 →
+  1.6741 → 1.7054 across runs (directionally faster, inside the ±5% noise
+  band, so no perf win is claimed). What it provably removes: 11 outlined
+  `finish` calls (relocation-verified) and per-transition decoder-memory
+  round-trips; what remains identical is proven by 3,506-case struct-memcmp
+  differential + full suite. Rationale for keeping a sub-noise change: it
+  deletes code paths (one writeback site instead of decentralised stores)
+  rather than adding cleverness.
 - Staticlib benchmarking stays infeasible on this toolchain (MinGW ld
   rejects the MSVC EH residue — re-probed, still fails), so every Rust
   number includes the cdylib IAT hop. Disclosed, not hidden; Rust callers

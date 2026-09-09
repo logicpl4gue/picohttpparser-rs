@@ -46,8 +46,15 @@ cp "$ROOT/target/release/picohttpparser_rs.dll" "$OUT/"
 echo "== fuzz campaign: SEED=$SEED ITERS=$ITERS over tests/corpus/chunked/{valid,malformed}"
 echo "   (case dumps land in target/fuzz-chunked-case-N.bin; exe+log in $OUT)"
 cd "$ROOT" || exit 1
-"$OUT/fuzz_chunked" "$SEED" "$ITERS" \
-  "$ROOT"/tests/corpus/chunked/valid/* "$ROOT"/tests/corpus/chunked/malformed/*
+# See fuzz_parse.sh: hangs must fail loudly (124), never stall silently.
+FUZZ_TIMEOUT_S="${FUZZ_TIMEOUT_S:-1800}"
+if command -v timeout >/dev/null 2>&1; then
+  FUZZ_CASE_DIR="$OUT" timeout "$FUZZ_TIMEOUT_S" "$OUT/fuzz_chunked" "$SEED" "$ITERS" \
+    "$ROOT"/tests/corpus/chunked/valid/* "$ROOT"/tests/corpus/chunked/malformed/*
+else
+  FUZZ_CASE_DIR="$OUT" "$OUT/fuzz_chunked" "$SEED" "$ITERS" \
+    "$ROOT"/tests/corpus/chunked/valid/* "$ROOT"/tests/corpus/chunked/malformed/*
+fi
 RC=$?
 echo "exit=$RC"
 exit $RC

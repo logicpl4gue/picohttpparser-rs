@@ -1,12 +1,3 @@
-# Keep the pinned C oracle byte-identical on every platform:
-# core.autocrlf must never touch reference/.
-reference/** -text
-# Corpus inputs are behavioral fixtures: a lone-LF file converted to CRLF
-# would silently become a different test case.
-tests/corpus/** -text
-# Generated evidence logs stay LF-stable.
-results/*.log -text
-
 # Scripts and sources always check out with LF.
 *.sh text eol=lf
 *.rs text eol=lf
@@ -15,6 +6,18 @@ results/*.log -text
 *.json text eol=lf
 *.c text eol=lf
 *.h text eol=lf
+*.py text eol=lf
 .gitattributes text eol=lf
 .gitignore text eol=lf
 Cargo.lock text eol=lf
+
+# Byte-exact pins MUST come last: git gives the last matching line
+# precedence, so any text rule above would silently defeat these.
+# Keep the pinned C oracle byte-identical on every platform:
+# core.autocrlf must never touch reference/.
+reference/** -text
+# Corpus inputs are behavioral fixtures: a lone-LF file converted to CRLF
+# would silently become a different test case.
+tests/corpus/** -text
+# Generated evidence logs stay LF-stable.
+results/*.log -text

@@ -49,8 +49,9 @@ curl -fsSL -o <filename> https://raw.githubusercontent.com/h2o/picohttpparser/f4
 
 ```bash
 cd reference
-sha256sum picohttpparser.c picohttpparser.h test.c bench.c Makefile README.md
-# compare against the table above
+sha256sum picohttpparser.c picohttpparser.h test.c bench.c Makefile README.md \
+  picotest/picotest.c picotest/picotest.h
+# compare against the table above (or simply: sha256sum -c SHA256SUMS)
 ```
 
 ## Known Gaps (honest)

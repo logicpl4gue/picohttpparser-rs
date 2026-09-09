@@ -14,6 +14,33 @@ fn decoder(trailer: bool) -> PhrChunkedDecoder {
     d
 }
 
+/// Feed `input` through a caller-seeded decoder; returns (ret, decoded).
+fn decode_with(mut dec: PhrChunkedDecoder, input: &[u8]) -> (isize, Vec<u8>) {
+    let mut buf = input.to_vec();
+    let mut len = buf.len();
+    let ret = unsafe { phr_decode_chunked(&mut dec, buf.as_mut_ptr() as *mut _, &mut len) };
+    buf.truncate(len);
+    (ret, buf)
+}
+
+/// Overhead-ratio boundary, pinned both sides of the flip: with the
+/// framer at exactly the 100 KiB line, a 13-byte data deficit fires (-1)
+/// while a large one holds (-2). Mirrors C's `>= 100*1024 &&
+/// read-overhead < read/4` expression exactly.
+#[test]
+fn overhead_ratio_boundary() {
+    // Fires: overhead lands at 102403, deficit 13 < 25604.
+    let mut dec = decoder(false);
+    dec._total_overhead = 102400;
+    dec._total_read = 102410;
+    assert_eq!(decode_with(dec, b"5\r\nhel").0, -1);
+    // Holds: same overhead, deficit 197603 not < 75001.
+    let mut dec = decoder(false);
+    dec._total_overhead = 102400;
+    dec._total_read = 300000;
+    assert_eq!(decode_with(dec, b"5\r\nhel").0, -2);
+}
+
 /// Feed `input` through a fresh decoder; returns (ret, decoded bytes).
 /// SAFETY: the decoder is valid and the buffer is owned + writable.
 fn decode_once(input: &[u8], trailer: bool) -> (isize, Vec<u8>) {

@@ -78,6 +78,9 @@ run_all() {
             note=""
         fi
         [ "$rc" -eq 0 ] || note="$note rc=$rc"
+        # rc=124 means the driver timeout fired: treat as a P0 hang/crash
+        # signal and point at the pre-entry snapshot for the failing input.
+        [ "$rc" -ne 124 ] || note="$note TIMEOUT-hang-or-crash-see-current.bin-snapshot"
         add_row "$tgt" "fuzz" "${cases:---}" "${mism:---}" "$rc" "$note"
         echo "      rc=$rc cases=${cases:---} mismatches=${mism:---}"
     done

@@ -83,11 +83,14 @@ static size_t pool_n[3];
 
 static int classify(const char *path)
 {
-    if (strstr(path, "request") != NULL)
+    /* Match on the corpus directory segment (either separator), never on a
+       substring of the full path: a checkout like `.../headers-work/x` must
+       not misroute every seed. */
+    if (strstr(path, "/request/") != NULL || strstr(path, "\\request\\") != NULL)
         return 0;
-    if (strstr(path, "response") != NULL)
+    if (strstr(path, "/response/") != NULL || strstr(path, "\\response\\") != NULL)
         return 1;
-    if (strstr(path, "headers") != NULL)
+    if (strstr(path, "/headers/") != NULL || strstr(path, "\\headers\\") != NULL)
         return 2;
     return -1;
 }
@@ -109,9 +112,11 @@ static int load_seeds(char **paths, int npaths)
         flen = ftell(fp);
         fseek(fp, 0, SEEK_SET);
         if (flen < 0 || flen > (long)MAXLEN) {
-            fprintf(stderr, "seed %s: bad length %ld\n", paths[p], flen);
+            /* Degrade, don't abort: one future big seed must not kill the
+               whole campaign (pool-full already behaves this way). */
+            fprintf(stderr, "seed %s: bad length %ld, skipping\n", paths[p], flen);
             fclose(fp);
-            return -1;
+            continue;
         }
         type = classify(paths[p]);
         if (type < 0) {
@@ -207,7 +212,7 @@ static void mutate(Work *w, int selpool)
 {
     unsigned char *b = w->buf;
     size_t len = w->len;
-    int op = (int)rnd_below(6);
+    int op = (int)rnd_below(7);
 
     switch (op) {
     case 0: { /* byte substitute */
@@ -301,6 +306,19 @@ static void mutate(Work *w, int selpool)
         mt_add(w->mt, sizeof(w->mt), "dup(%llu..%llu)", (unsigned long long)lstart, (unsigned long long)(lstart + dlen));
         break;
     }
+    case 6: { /* insert a grammar snippet: multi-byte structural corruption
+                 (blank line, terminator, version, separator, ext, size)
+                 that single-byte ops reach only by luck */
+        static const char *snips[] = {"\r\n\r\n", "\r\n", "0\r\n", " HTTP/1.1",
+                                      ": ", ";ext", "1a\r\n"};
+        size_t si = rnd_below(sizeof(snips) / sizeof(snips[0]));
+        const char *s = snips[si];
+        size_t pos = rnd_below(len + 1);
+        w->len = insert_at(b, len, pos, (const unsigned char *)s, strlen(s));
+        mt_add(w->mt, sizeof(w->mt), "snip%llu@%llu", (unsigned long long)si,
+               (unsigned long long)pos);
+        break;
+    }
     default:
         break;
     }
@@ -332,6 +350,25 @@ static void dump_head(const unsigned char *b, size_t len)
     if (len > n)
         printf(" ...(%zu bytes total)", len);
     printf("\n");
+}
+
+/* Pre-entry snapshot for crash recovery (P1-1): the current input is
+   written on every iteration so a segfault/abort leaves the failing bytes
+   on disk, not just in memory. Overwrites the same file each time. */
+static void snap_current(const unsigned char *b, size_t len)
+{
+    const char *dir = getenv("FUZZ_CASE_DIR");
+    char path[512];
+    FILE *f;
+    if (dir == NULL || *dir == '\0')
+        dir = "target";
+    snprintf(path, sizeof(path), "%s/fuzz-parse-current.bin", dir);
+    f = fopen(path, "wb");
+    if (f == NULL)
+        return;
+    if (len > 0)
+        fwrite(b, 1, len, f);
+    fclose(f);
 }
 
 static void write_case(int ordinal, const unsigned char *b, size_t len)
@@ -539,6 +576,10 @@ int main(int argc, char **argv)
         cap = CAPS[rnd_below(NCAPS)];
         last_len = rnd_below(w.len + 1);
         mt = w.mt[0] != '\0' ? w.mt : "none";
+        /* Crash/hang repro capture: the escalation policy promises the
+           failing input byte-for-byte, but on segfault/abort it exists only
+           in memory. Snapshot first; after a crash the last input is on disk. */
+        snap_current(w.buf, w.len);
         run_entry(entry_here, i, base->name, cap, last_len, mt, w.buf, w.len);
 
         if (mismatch_count >= MAX_CASES)

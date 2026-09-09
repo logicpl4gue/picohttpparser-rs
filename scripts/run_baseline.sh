@@ -312,11 +312,14 @@ fi
 
 # --- 5. write results/baseline.json ----------------------------------------
 mkdir -p "$ROOT/results"
+REV_BASE="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+[ -n "$(git status --porcelain 2>/dev/null | grep -v '^?? target/')" ] && REV_BASE="${REV_BASE}-dirty"
 if ! cat > "$OUT" <<EOF
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "generatedUtc": "$(jstr "$GEN_UTC")",
   "generatedBy": "scripts/run_baseline.sh",
+  "rev": "$(jstr "$REV_BASE")",
   "pin": {
     "repository": "h2o/picohttpparser",
     "commit": "f4d94b48b31e0abae029ebeafcfd9ca0680ede58",

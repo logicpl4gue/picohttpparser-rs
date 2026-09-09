@@ -91,6 +91,8 @@ mismatches() {
     case "$rc" in
         1) return 0 ;;  # difftest: mismatches>0
         0) return 1 ;;  # difftest: clean
+        139|134) echo "note: oracle died by signal (rc=$rc) on '$f' — a crash finding in itself; record the input before minimizing further" >&2
+            return 2 ;;
         *) return 2 ;;  # usage / unreadable / oracle fault
     esac
 }

@@ -237,11 +237,34 @@ static void fresh_dec(struct phr_chunked_decoder *d, int trailer)
  * legitimately be in); bytes_left/_hex_count are only read in specific
  * states by both implementations, so arbitrary values there are "defined"
  * input, exactly as in difftest_chunked.c's dirty matrix. */
+/* Pre-entry snapshot for crash recovery (P1-1): the logical body is
+   written on every iteration so a segfault/abort leaves the failing bytes
+   on disk, not just in memory. Overwrites the same file each time. */
+static void snap_current(void)
+{
+    const char *dir = getenv("FUZZ_CASE_DIR");
+    char path[512];
+    FILE *f;
+    if (dir == NULL || *dir == '\0')
+        dir = "target";
+    snprintf(path, sizeof(path), "%s/fuzz-chunked-current.bin", dir);
+    f = fopen(path, "wb");
+    if (f == NULL)
+        return;
+    if (body_len > 0)
+        fwrite(body, 1, body_len, f);
+    fclose(f);
+}
+
 static void dirty_dec(struct phr_chunked_decoder *dr, struct phr_chunked_decoder *dc)
 {
     int st = (int)rng_less(4); /* 0..3 */
     unsigned char left = 0;
     unsigned char hex = 0;
+    /* Threshold-near accounting (P2-1): the 100 KiB overhead-ratio branch
+       is otherwise unreachable below huge inputs. Seed both counters so a
+       Partial exit evaluates it, firing ~1/3 of the time. */
+    int hot = (rng_less(4) == 0);
     switch (st) {
     case 0: /* IN_CHUNK_SIZE: bytes_left accumulates; hex_count gates at 16 */
         left = (unsigned char)rng_less(256);
@@ -260,6 +283,14 @@ static void dirty_dec(struct phr_chunked_decoder *dr, struct phr_chunked_decoder
     dr->_state = dc->_state = (char)st;
     dr->bytes_left_in_chunk = dc->bytes_left_in_chunk = (size_t)left;
     dr->_hex_count = dc->_hex_count = (char)hex;
+    if (hot) {
+        /* overhead just over the line, data delta spanning the flip point:
+           fires iff delta < (102400 + delta)/4, i.e. delta <= 34133. */
+        unsigned long long over = 100ULL * 1024 + rng_less(2048);
+        unsigned long long delta = rng_less(100000);
+        dr->_total_overhead = dc->_total_overhead = over;
+        dr->_total_read = dc->_total_read = over + delta;
+    }
 }
 
 static size_t mismatch_count = 0;
@@ -407,6 +438,7 @@ int main(int argc, char **argv)
         size_t prev;
         iteration = iter;
         build_body();
+        snap_current();
         trailer = (int)rng_less(2);
         dirty = (int)rng_less(8) == 0; /* ~1/8 */
         /* Decide single call vs split; both reuse the same body. */
