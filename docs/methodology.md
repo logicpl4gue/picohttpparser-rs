@@ -130,6 +130,18 @@ every call.
 Case formula (request/response/headers harnesses): cases/file = 7 × ((len + 2) + len);
 total = 7 × (2×Σlen + 2×files). The chunked harness counts single, split,
 and dirty-state calls instead (see its stored log).
+
+## Compatibility gate: upstream suite vs Rust (plan M5 / repo M6)
+
+`scripts/run_baseline.sh` section 4b compiles the **unmodified** upstream
+`reference/test.c` + `reference/picotest/` (plus the harness-only `mmap`
+shim where the libc lacks it) and links them against
+`target/release/picohttpparser_rs.dll` — *not* the C oracle. The suite's
+guard-page `mmap` input makes this an overread test as well as a behavioral
+one. Results land in `results/upstream-rust.log` with totals in
+`baseline.json:upstreamVsRust` (schema v4); any failure fails the script.
+The gate passes iff: this suite is green, every differential log is fresh
+and mismatch-free, and `docs/divergences.md` holds no OPEN/UNRESOLVED row.
 Compared per case — request: ret, method, path, version, header count;
 response: ret, version, status (incl. partial value on digit failure),
 reason (incl. empty + space-strip); both: every name/value — as

@@ -22,6 +22,22 @@ Target: 100% of applicable upstream tests passing on the Rust replacement.
 | 2026-09-09 | 21,728 | 0 | 0 | Standalone header parser. `scripts/diff_headers.sh`: 31 corpus files (incl. 64/65-header cap-boundary blocks) × same caps × full + streaming prefixes + cold prefixes. Compared: ret, count, every name/value as pointer+length equality incl. in-progress slot. Stored log: `results/difftest-headers.log`. Repro: `CC=gcc bash scripts/diff_headers.sh`. |
 | 2026-09-09 | 3,506 | 0 | 0 | Chunked decoder. `scripts/diff_chunked.sh`: 31 corpus files (incl. 1 MB chunk, 150 KB bomb + truncated cut, exact 100 KiB / ratio boundary pairs, pipelined message, trailer leftover, lowercase hex) × trailer {0,1} × single call + exhaustive two-way splits (quarters for >8 KB files) + three-way quarter splits + dirty initial decoder states. Compared per call: ret, decoded length, is_in_data, full decoder struct, entire working buffer. Stored log: `results/difftest-chunked.log`. Repro: `CC=gcc bash scripts/diff_chunked.sh`. |
 
+## Compatibility Gate (plan M5 / repo M6) — PASSED 2026-09-09
+
+| Check | Result | Evidence |
+|---|---|---|
+| Upstream suite vs C oracle | 8/8 subtests (7 parser groups + guard-page harness check), 299 TAP checks (291 parser assertions), 0 failures | `results/upstream-tests.log` |
+| Upstream suite vs Rust (unmodified `test.c` linked against the release cdylib) | same 8/8, 299/291, 0 failures | `results/upstream-rust.log`, `baseline.json:upstreamVsRust`; repro `CC=gcc bash scripts/run_baseline.sh` |
+| Differential, request | 87,052 cases, 0 mismatches | `results/difftest-request.log` |
+| Differential, response | 20,678 cases, 0 mismatches | `results/difftest-response.log` |
+| Differential, headers | 21,728 cases, 0 mismatches | `results/difftest-headers.log` |
+| Differential, chunked | 3,506 cases, 0 mismatches | `results/difftest-chunked.log` |
+| Known divergences unresolved | 0 (3 rows, all INTENTIONAL fail-closed hardenings) | `docs/divergences.md` |
+
+Total: 132,964 differential cases + 299 upstream assertions × 2 targets,
+zero failures, zero unresolved divergences. Optimization (plan M8+) may
+begin: behavior is pinned.
+
 ## Regression corpus (`tests/corpus/request/`, `tests/corpus/response/`)
 
 60 request files (23 valid + 37 malformed), 34 response files (15 valid +

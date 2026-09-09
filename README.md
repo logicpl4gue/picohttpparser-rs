@@ -8,12 +8,12 @@ The original is treated as a **behavioral oracle**: we verify by differential
 testing, fuzzing, and the upstream test suite — and we publish losses as well
 as wins. See `picohttpparser-rs-plan.md` for the full project plan.
 
-## Status — Milestone 5 (chunked decoder: all entry points live)
+## Status — Milestone 6 (compatibility gate PASSED)
 
 > Numbering note: `picohttpparser-rs-plan.md` defines Milestone 3 as
 > "Responses + Headers"; the repo implemented it as two milestones
 > (M3 response, M4 headers), so repo numbers run one ahead of the plan
-> from here on (repo M5 chunked = plan M4).
+> from here on (repo M5 chunked = plan M4, repo M6 gate = plan M5).
 
 - ✅ Milestone 0 baseline: pinned upstream revision
   `f4d94b48b31e0abae029ebeafcfd9ca0680ede58` in `reference/` (files +
@@ -25,7 +25,7 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
   types, `#[repr(C)]` struct layout via compile-time asserts) but return `-1`
   (`0` for `_is_in_data`) — no parsing yet. Rust↔C mapping table in
   `docs/api.md`.
-- ✅ C baseline: upstream `bench` (10M iters, **mean 2.041s / 204.1 ns/parse
+- ✅ C baseline: upstream `bench` (10M iters, **mean 2.129s / 212.9 ns/parse
   over 6 trials** after 1 warmup, i5-12400F) and full upstream suite
   (**299 assertions, 8/8 subtests pass**) via `CC=gcc` (w64devkit, `D:/Tools`);
   `prove` absent so the TAP binary runs directly; sanitizers unavailable in
@@ -50,8 +50,14 @@ as wins. See `picohttpparser-rs-plan.md` for the full project plan.
   `results/difftest-chunked.log`); unit vectors in `tests/chunked.rs`;
   corpus in `tests/corpus/chunked/` (31 files, incl. 1 MB chunk, overhead
   bomb + exact rule-boundary pairs).
-- ⏳ Not started: compatibility gate review, fuzzing, benchmarks,
-  H2O integration.
+- ✅ Milestone 6 = plan M5, Compatibility Gate: **PASSED**. Unmodified
+  upstream `test.c` linked against the release cdylib: 8/8 subtests, 299
+  assertions, 0 failures (`results/upstream-rust.log`, via
+  `CC=gcc bash scripts/run_baseline.sh`). All four differential harnesses
+  re-run fresh the same day: 132,964 cases, 0 mismatches. Divergences: 0
+  unresolved (3 INTENTIONAL fail-closed rows). Details in
+  `docs/compatibility.md`.
+- ⏳ Not started: fuzzing, benchmarks, H2O integration.
 
 ## Layout
 

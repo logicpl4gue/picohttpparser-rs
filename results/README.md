@@ -17,3 +17,23 @@ Rules:
    `docs/methodology.md`.
 3. Report losses and wins; the goal is a controlled experiment, not a
    claim-file.
+
+## `baseline.json` schema (v4)
+
+Top-level: `schemaVersion` (number), `generatedUtc` (string),
+`generatedBy` (string), `pin` {`repository`, `commit`, `short`,
+`filesPinned` (number), `hashVerify` (`passed`/`failed`), `hashDetail`},
+`environment` {tool versions, `cpu`, `cpuCount`, `powerScheme`, all strings},
+`cBaseline` {`status`, `reason`, `buildCommand`, `benchTrials` (number),
+`benchWarmupDiscarded` (number), `benchIterations` (number|null),
+`benchSecondsMean`/`Min` (number|null), `benchNsPerParseMean` (number|null),
+`benchRunsSeconds` (array), `benchWarmupSeconds` (number|null),
+`benchCorpusFile`, `benchCorpusSha256`, `benchScope`, `timer`,
+`timerGranularityNs` (number|null), `timerNote`},
+`upstreamTestSuite` and `upstreamVsRust` {`status`, `reason`, `runner`,
+`sanitizers` (suite only), `total`/`passed`/`failed` (number|null), `skipped`,
+`log`}, `honestyNote`.
+
+History: v1 = M0 baseline; v2 = test-suite counts; v3 = bench trials +
+machine identity + corpus metadata; v4 = `upstreamVsRust` (gate: unmodified
+upstream `test.c` linked against the Rust cdylib).

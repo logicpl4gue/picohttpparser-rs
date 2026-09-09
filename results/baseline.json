@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 3,
-  "generatedUtc": "2026-09-08T23:48:07Z",
+  "schemaVersion": 4,
+  "generatedUtc": "2026-09-09T01:07:44Z",
   "generatedBy": "scripts/run_baseline.sh",
   "pin": {
     "repository": "h2o/picohttpparser",
@@ -34,11 +34,11 @@
     "benchTrials": 6,
     "benchWarmupDiscarded": 1,
     "benchIterations": 10000000,
-    "benchSecondsMean": 2.041,
-    "benchSecondsMin": 2.005,
-    "benchNsPerParseMean": 204.1,
-    "benchRunsSeconds": [2.069,2.005,2.031,2.037,2.038,2.068],
-    "benchWarmupSeconds": 2.090,
+    "benchSecondsMean": 2.086,
+    "benchSecondsMin": 2.063,
+    "benchNsPerParseMean": 208.6,
+    "benchRunsSeconds": [2.119,2.083,2.063,2.066,2.089,2.093],
+    "benchWarmupSeconds": 2.213,
     "benchCorpusFile": "reference/bench.c",
     "benchCorpusSha256": "cf44504db5908792d4f7c6355a7a05ba80cf2411efb85995fc6e2933ec9feca7",
     "benchScope": "request-parse happy path only: one fixed ~620B GET x10M (upstream marker, unmodified)",
@@ -56,6 +56,15 @@
     "failed": 0,
     "skipped": "",
     "log": "results/upstream-tests.log (created only when the suite runs)"
+  },
+  "upstreamVsRust": {
+    "status": "passed",
+    "reason": "",
+    "runner": "direct",
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "log": "results/upstream-rust.log (unmodified upstream test.c linked against the Rust cdylib)"
   },
   "honestyNote": "Every value above is a real measurement or an explicit skipped-with-reason. No fabricated numbers."
 }

@@ -83,6 +83,24 @@ fn streaming_split() {
 }
 
 #[test]
+fn forged_state_fails_closed() {
+    use picohttpparser_rs::ffi::phr_decode_chunked_is_in_data;
+    // A forged `_state` outside 0–7 can never arise from the real machine
+    // (transitions only write 0–7), but the seam must fail closed rather
+    // than hang or abort like C does. Recorded in docs/divergences.md row 2.
+    let mut dec = decoder(false);
+    dec._state = 8;
+    let mut buf = b"5\r\nhello\r\n0\r\n\r\n".to_vec();
+    let mut len = buf.len();
+    let before = dec._total_read;
+    let r = unsafe { phr_decode_chunked(&mut dec, buf.as_mut_ptr() as *mut _, &mut len) };
+    assert_eq!(r, -1);
+    // Only the entry `_total_read` advance survives; nothing was copied.
+    assert_eq!(dec._total_read, before.wrapping_add(buf.len() as u64));
+    assert_eq!(unsafe { phr_decode_chunked_is_in_data(&dec) }, 0);
+}
+
+#[test]
 fn null_corners_fail_closed() {
     use picohttpparser_rs::ffi::phr_decode_chunked_is_in_data;
     // Null buffer with zero length reads as empty (-2), like C which never

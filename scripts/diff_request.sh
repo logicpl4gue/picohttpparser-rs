@@ -42,5 +42,13 @@ $CC -O2 -Wall -I"$REF" "$ROOT/scripts/difftest_request.c" "$OUT/oracle.o" \
 cp "$ROOT/target/release/picohttpparser_rs.dll" "$OUT/"
 
 echo "== run over corpus (teeing to results/difftest-request.log)"
+# Run identity: a bare totals line cannot prove freshness, so the log opens
+# with when/what-revision ran it (Finding 2, M6 gate audit).
+{ echo "run_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)";
+   _rev=$(git rev-parse --short HEAD 2>/dev/null || echo unknown);
+   # -dirty iff tracked or corpus/script changes are uncommitted (target/ ignored).
+   [ -n "$(git status --porcelain 2>/dev/null | grep -v '^?? target/')" ] && _rev="${_rev}-dirty";
+   echo "rev=$_rev"; } | tee "$ROOT/results/difftest-request.log"
 # shellcheck disable=SC2086
-"$OUT/difftest_request" $ROOT/tests/corpus/request/valid/* $ROOT/tests/corpus/request/malformed/* 2>&1 | tee "$ROOT/results/difftest-request.log"
+# shellcheck disable=SC2086
+"$OUT/difftest_request" $ROOT/tests/corpus/request/valid/* $ROOT/tests/corpus/request/malformed/* 2>&1 | tee -a "$ROOT/results/difftest-request.log"

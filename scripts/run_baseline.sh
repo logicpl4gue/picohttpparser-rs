@@ -201,17 +201,30 @@ SHIM_C
     SAN_FLAGS=""; TEST_SAN="unavailable"
   fi
 fi
-if [ "$CC_PRESENT" = "present" ] && [ "$PICOTEST_PRESENT" = "present" ]; then
+# F2 gate: a failed pin check fails every consumer of reference/ outright.
+PIN_ENFORCED=0
+if [ "$HASH_VERIFY" != "passed" ]; then
+  TEST_STATUS="failed"; TEST_REASON="pin verification failed; refusing to build or run reference code"
+  RUST_STATUS="failed"; RUST_REASON="pin verification failed; refusing to build or run reference code"
+  PIN_ENFORCED=1
+fi
+# F3 guard: hang regressions must fail loudly, never stall. `timeout` ships
+# with MSYS coreutils; without it the binaries run unwrapped (same as before).
+TIMEOUT_RUN=""
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_RUN="timeout 300"
+fi
+if [ "$PIN_ENFORCED" = "0" ] && [ "$CC_PRESENT" = "present" ] && [ "$PICOTEST_PRESENT" = "present" ]; then
   TEST_BIN="$BENCH_DIR/test-bin"
   # shellcheck disable=SC2086
   if $CC -Wall -O2 $SAN_FLAGS $SHIM_INC -o "$TEST_BIN" "$REF/picohttpparser.c" "$REF/picotest/picotest.c" "$REF/test.c" $SHIM_SRC >"$BENCH_DIR/test-build.log" 2>&1; then
     TEST_LOG="$ROOT/results/upstream-tests.log"
     if [ "$PROVE_PRESENT" = "present" ]; then
       TEST_RUNNER="prove"
-      ( cd "$BENCH_DIR" && UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 prove ./test-bin >"$TEST_LOG" 2>&1 ); RC=$?
+      ( cd "$BENCH_DIR" && UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 $TIMEOUT_RUN prove ./test-bin >"$TEST_LOG" 2>&1 ); RC=$?
     else
       TEST_RUNNER="direct"
-      ( cd "$BENCH_DIR" && UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./test-bin >"$TEST_LOG" 2>&1 ); RC=$?
+      ( cd "$BENCH_DIR" && UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 $TIMEOUT_RUN ./test-bin >"$TEST_LOG" 2>&1 ); RC=$?
     fi
     TEST_TOTAL=$(grep -cE '^(ok|not ok) [0-9]+ - ' "$TEST_LOG" 2>/dev/null || true)
     TEST_FAILED=$(grep -cE '^not ok' "$TEST_LOG" 2>/dev/null || true)
@@ -225,18 +238,69 @@ if [ "$CC_PRESENT" = "present" ] && [ "$PICOTEST_PRESENT" = "present" ]; then
   else
     TEST_STATUS="failed"; TEST_REASON="test-bin build failed, see target/c-baseline/test-build.log"
   fi
-else
+elif [ "$PIN_ENFORCED" = "0" ]; then
   MISSING=""
   [ "$CC_PRESENT" = "present" ] || MISSING="$MISSING cc"
   [ "$PICOTEST_PRESENT" = "present" ] || MISSING="$MISSING picotest"
   TEST_REASON="missing:${MISSING}"
 fi
+# (PIN_ENFORCED=1 keeps the failed status set above.)
+
+# --- 4b. upstream suite vs Rust cdylib (the compatibility gate) ------------
+# Compiles the UNMODIFIED upstream test.c + picotest against the Rust release
+# cdylib (NOT the C oracle) and runs it: this is the literal "100%
+# applicable upstream tests" gate. Guard-page mmap input makes it an
+# overread test too.
+RUST_STATUS="skipped"; RUST_REASON=""; RUST_TOTAL=""; RUST_PASSED=""; RUST_FAILED=""
+RUST_RUNNER=""
+CARGO_PRESENT="$(command -v cargo >/dev/null 2>&1 && echo present || echo missing)"
+if [ "$PIN_ENFORCED" = "0" ] && [ "$CC_PRESENT" = "present" ] && [ "$PICOTEST_PRESENT" = "present" ] && [ "$CARGO_PRESENT" = "present" ]; then
+  if ( cd "$ROOT" && cargo build --release >"$BENCH_DIR/cargo-build.log" 2>&1 ); then
+    RUST_BIN="$BENCH_DIR/test-rust"
+    # F1 hardening: delete before copy so a locked/stale DLL can never pass
+    # silently — a failed copy fails the gate instead of testing old code.
+    rm -f "$BENCH_DIR/picohttpparser_rs.dll"
+    if ! cp "$ROOT/target/release/picohttpparser_rs.dll" "$BENCH_DIR/" 2>"$BENCH_DIR/dll-copy.log"; then
+      RUST_STATUS="failed"; RUST_REASON="could not stage fresh cdylib, see target/c-baseline/dll-copy.log"
+    # shellcheck disable=SC2086
+    elif $CC -Wall -O2 $SHIM_INC -I"$REF" -o "$RUST_BIN" "$REF/picotest/picotest.c" "$REF/test.c" $SHIM_SRC "$ROOT/target/release/picohttpparser_rs.dll.lib" >"$BENCH_DIR/test-rust-build.log" 2>&1; then
+      RUST_LOG="$ROOT/results/upstream-rust.log"
+      if [ "$PROVE_PRESENT" = "present" ]; then
+        RUST_RUNNER="prove"
+        ( cd "$BENCH_DIR" && $TIMEOUT_RUN prove ./test-rust >"$RUST_LOG" 2>&1 ); RC=$?
+      else
+        RUST_RUNNER="direct"
+        ( cd "$BENCH_DIR" && $TIMEOUT_RUN ./test-rust >"$RUST_LOG" 2>&1 ); RC=$?
+      fi
+      RUST_TOTAL=$(grep -cE '^(ok|not ok) [0-9]+ - ' "$RUST_LOG" 2>/dev/null || true)
+      RUST_FAILED=$(grep -cE '^not ok' "$RUST_LOG" 2>/dev/null || true)
+      RUST_TOTAL=${RUST_TOTAL:-0}; RUST_FAILED=${RUST_FAILED:-0}
+      RUST_PASSED=$((RUST_TOTAL - RUST_FAILED))
+      if [ "$RC" -eq 0 ] && [ "$RUST_FAILED" -eq 0 ]; then
+        RUST_STATUS="passed"
+      else
+        RUST_STATUS="failed"; RUST_REASON="test-rust exited ${RC} with ${RUST_FAILED} failures, see results/upstream-rust.log"
+      fi
+    else
+      RUST_STATUS="failed"; RUST_REASON="test-rust build failed, see target/c-baseline/test-rust-build.log"
+    fi
+  else
+    RUST_STATUS="failed"; RUST_REASON="cargo build --release failed, see target/c-baseline/cargo-build.log"
+  fi
+elif [ "$PIN_ENFORCED" = "0" ]; then
+  MISSING=""
+  [ "$CC_PRESENT" = "present" ] || MISSING="$MISSING cc"
+  [ "$PICOTEST_PRESENT" = "present" ] || MISSING="$MISSING picotest"
+  [ "$CARGO_PRESENT" = "present" ] || MISSING="$MISSING cargo"
+  RUST_REASON="missing:${MISSING}"
+fi
+# (PIN_ENFORCED=1 keeps the failed status set above.)
 
 # --- 5. write results/baseline.json ----------------------------------------
 mkdir -p "$ROOT/results"
 if ! cat > "$OUT" <<EOF
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "generatedUtc": "$(jstr "$GEN_UTC")",
   "generatedBy": "scripts/run_baseline.sh",
   "pin": {
@@ -294,6 +358,15 @@ if ! cat > "$OUT" <<EOF
     "skipped": "$(jstr "$TEST_SKIPPED")",
     "log": "results/upstream-tests.log (created only when the suite runs)"
   },
+  "upstreamVsRust": {
+    "status": "$RUST_STATUS",
+    "reason": "$(jstr "$RUST_REASON")",
+    "runner": "$(jstr "$RUST_RUNNER")",
+    "total": ${RUST_TOTAL:-null},
+    "passed": ${RUST_PASSED:-null},
+    "failed": ${RUST_FAILED:-null},
+    "log": "results/upstream-rust.log (unmodified upstream test.c linked against the Rust cdylib)"
+  },
   "honestyNote": "Every value above is a real measurement or an explicit skipped-with-reason. No fabricated numbers."
 }
 EOF
@@ -306,5 +379,6 @@ echo "Baseline written to $OUT"
 echo "  hashVerify: $HASH_VERIFY"
 echo "  cBaseline:  $BENCH_STATUS ${BENCH_REASON:+($BENCH_REASON)}${BENCH_MEAN:+mean ${BENCH_MEAN}s over ${BENCH_TRIALS} trials}"
 echo "  testSuite:  $TEST_STATUS ${TEST_REASON:+($TEST_REASON)}"
-[ "$BENCH_STATUS" = "failed" ] || [ "$TEST_STATUS" = "failed" ] && exit 1
+echo "  vsRust:     $RUST_STATUS ${RUST_REASON:+($RUST_REASON)}"
+[ "$BENCH_STATUS" = "failed" ] || [ "$TEST_STATUS" = "failed" ] || [ "$RUST_STATUS" = "failed" ] && exit 1
 exit 0

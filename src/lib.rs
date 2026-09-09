@@ -26,8 +26,10 @@
 //! - ✅ Milestone 5 (chunked decoder): stateful in-place `chunked` core;
 //!   3,506 differential cases with 0 mismatches (`scripts/diff_chunked.sh`).
 //!   All five C entry points are live; no stubs remain.
-//! - ⏳ Milestone 6+ (compatibility gate, fuzzing, benchmarks, consumer
-//!   integration): not started.
+//! - ✅ Milestone 6 (compatibility gate, plan M5): unmodified upstream
+//!   `test.c` passes 8/8 against the Rust cdylib; 132,964 differential
+//!   cases with 0 mismatches; 0 unresolved divergences.
+//! - ⏳ Milestone 7+ (fuzzing, benchmarks, consumer integration): not started.
 
 #![warn(missing_docs)]
 
