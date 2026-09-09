@@ -16,10 +16,12 @@
 //!   pin names, calling convention, argument/return types, and struct layout
 //!   but return `-1` (`0` for `_is_in_data`) until real parsing lands.
 //! - ✅ Milestone 2 (request parser): safe zero-copy core (`core`,
-//!   `request`) behind the FFI seam; 43,372 differential cases vs the C
+//!   `request`) behind the FFI seam; 87,052 differential cases vs the C
 //!   oracle with 0 mismatches (`scripts/diff_request.sh`).
-//! - ⏳ Milestone 3+ (response/headers/chunked parsers, fuzzing,
-//!   benchmarks): not started.
+//! - ✅ Milestone 3 (response parser): `response` reuses the shared core;
+//!   20,678 differential cases with 0 mismatches (`scripts/diff_response.sh`).
+//! - ⏳ Milestone 4+ (headers/chunked parsers, fuzzing, benchmarks):
+//!   not started.
 
 #![warn(missing_docs)]
 
@@ -29,5 +31,7 @@ pub mod ffi;
 mod core;
 /// Request-line parser (Milestone 2).
 mod request;
+/// Response-line parser (Milestone 3).
+mod response;
 
 pub use ffi::{PhrChunkedDecoder, PhrHeader};

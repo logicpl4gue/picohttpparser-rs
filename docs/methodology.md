@@ -101,25 +101,31 @@ time target/c-baseline/bench            # 10,000,000 iterations, exits 0 on succ
   aborts, never UB through the ABI); M2+ bodies get `catch_unwind` → `-1`,
   and the core stays panic-free (`unwrap_used`/`expect_used` denied).
 
-## Milestone 2 differential (Layer 2, request parser)
+## Milestone 2/3 differential (Layer 2, request + response parsers)
 
 ```bash
-CC=gcc bash scripts/diff_request.sh   # builds oracle + harness, runs corpus, tees results/difftest-request.log
+CC=gcc bash scripts/diff_request.sh    # builds oracle + harness, runs corpus, tees results/difftest-request.log
+CC=gcc bash scripts/diff_response.sh   # same for responses, tees results/difftest-response.log
 ```
 
 What it does: compiles `reference/picohttpparser.c` with `-D` renames
 (`c_*` oracle symbols, `-O2 -Wall`), links the **release cdylib** (the
-shipped artifact, never a debug build) plus `scripts/difftest_request.c`
-into one binary, and runs 57 corpus files × caps {0,1,2,3,5,16,64} × full
-buffer + every prefix (streaming, `last_len` = previous length).
+shipped artifact, never a debug build) plus the per-entry harness into one
+binary, and runs every corpus file × caps {0,1,2,3,5,16,64} × three sweeps:
+full buffer cold, every prefix streaming (`last_len` = previous length),
+and every strict prefix cold (`last_len` = 0 — without this, the slowloris
+gate short-circuits all short prefixes and parse-path EOF handling goes
+uncompared).
 
-Case formula: cases/file = 7 × (len + 2); total = 7 × (Σlen + 2×files).
-Compared per case: ret, method, path, version, header count, every
-name/value — as pointer+length equality into the shared input buffer (which
-*is* byte equality), including the in-progress header slot on error paths
-(C leaves the scanned name behind; the Rust seam mirrors it two-phase).
-The harness never dereferences output pointers, so untouched sentinel slots
-cannot crash it — only genuinely divergent bytes fail.
+Case formula: cases/file = 7 × ((len + 2) + len); total = 7 × (2×Σlen + 2×files).
+Compared per case — request: ret, method, path, version, header count;
+response: ret, version, status (incl. partial value on digit failure),
+reason (incl. empty + space-strip); both: every name/value — as
+pointer+length equality into the shared input buffer (which *is* byte
+equality), including the in-progress header slot on error paths (C leaves
+the scanned name behind; the Rust seam mirrors it two-phase). The harness
+never dereferences output pointers, so untouched sentinel slots cannot crash
+it — only genuinely divergent bytes fail.
 
 ## Benchmark rules (forward-looking, per plan §13)
 

@@ -1,9 +1,10 @@
 //! C ABI surface of picohttpparser-rs (Milestone 1 shell).
 //!
 //! Signatures and struct layouts mirror `reference/picohttpparser.h` at pin
-//! `f4d94b48b31e0abae029ebeafcfd9ca0680ede58`. `phr_parse_request` is a real
-//! parser (Milestone 2, via `crate::request`); the other four are still
-//! **stubs** that pin the ABI and return failure until Milestones 3+.
+//! `f4d94b48b31e0abae029ebeafcfd9ca0680ede58`. `phr_parse_request`
+//! (Milestone 2, via `crate::request`) and `phr_parse_response` (Milestone 3,
+//! via `crate::response`) are real parsers; the remaining three are still
+//! **stubs** that pin the ABI and return failure until Milestones 4+.
 //!
 //! This module is the crate's entire `unsafe` surface: the parsing core only
 //! reports offsets, and this seam turns them into output pointers.
@@ -227,28 +228,115 @@ fn parse_request_inner(
 /// Parses an HTTP response head.
 ///
 /// Returns bytes consumed (>= 0), `-2` for partial input, `-1` on failure.
-/// **Milestone 1 stub**: always returns `-1`; real parsing is added in
-/// Milestone 3.
+/// Behaviorally identical to C's `phr_parse_response` (Milestone 3),
+/// including progressive publication (partial status, scanned reason) and
+/// zeroed outputs on every path.
 ///
 /// # Safety
 ///
-/// The stub does not dereference any argument. When real parsing lands, all
-/// pointers must be valid: `_buf`/`len` describe the input buffer, `headers`
-/// must point to `*num_headers` entries, and the output pointers must point
-/// to writable storage.
+/// `buf`/`len` must describe a readable input buffer, `headers` must point
+/// to `*num_headers` writable entries, and the output pointers must point to
+/// writable storage. Null outputs (or a null input with `len != 0`) fail
+/// closed with `-1` instead of faulting. A panic anywhere inside maps to
+/// `-1` per the crate's pinned panic policy.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn phr_parse_response(
-    _buf: *const c_char,
-    _len: usize,
-    _minor_version: *mut c_int,
-    _status: *mut c_int,
-    _msg: *mut *const c_char,
-    _msg_len: *mut usize,
-    _headers: *mut PhrHeader,
-    _num_headers: *mut usize,
-    _last_len: usize,
+    buf: *const c_char,
+    len: usize,
+    minor_version: *mut c_int,
+    status: *mut c_int,
+    msg: *mut *const c_char,
+    msg_len: *mut usize,
+    headers: *mut PhrHeader,
+    num_headers: *mut usize,
+    last_len: usize,
 ) -> c_int {
-    -1
+    // `match` (not `unwrap_or`) so the -1 mapping stays explicit;
+    // `unwrap_or` would also trip the crate's `clippy::unwrap_used` deny.
+    #[allow(clippy::manual_unwrap_or)]
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        parse_response_inner(
+            buf,
+            len,
+            minor_version,
+            status,
+            msg,
+            msg_len,
+            headers,
+            num_headers,
+            last_len,
+        )
+    })) {
+        Ok(r) => r,
+        Err(_) => -1,
+    }
+}
+
+/// `phr_parse_response` minus the unwind guard. Arity mirrors the C
+/// signature 1:1 by design (same order, same meaning).
+#[allow(clippy::too_many_arguments)]
+fn parse_response_inner(
+    buf: *const c_char,
+    len: usize,
+    minor_version: *mut c_int,
+    status: *mut c_int,
+    msg: *mut *const c_char,
+    msg_len: *mut usize,
+    headers: *mut PhrHeader,
+    num_headers: *mut usize,
+    last_len: usize,
+) -> c_int {
+    if minor_version.is_null()
+        || status.is_null()
+        || msg.is_null()
+        || msg_len.is_null()
+        || num_headers.is_null()
+        || (len != 0 && buf.is_null())
+    {
+        return -1;
+    }
+    // SAFETY: outputs checked non-null above; zeroed first like C on entry.
+    unsafe {
+        *minor_version = -1;
+        *status = 0;
+        *msg = std::ptr::null();
+        *msg_len = 0;
+        let max = *num_headers;
+        *num_headers = 0;
+        if max != 0 && headers.is_null() {
+            return -1;
+        }
+        let data: &[u8] = if len == 0 {
+            &[]
+        } else {
+            // SAFETY: non-null (checked) + caller-guaranteed `len` bytes.
+            std::slice::from_raw_parts(buf as *const u8, len)
+        };
+        let mut sink = RawSink {
+            base: buf,
+            slots: headers,
+            cap: max,
+        };
+        let mut prog = crate::response::Progress::default();
+        let r = match crate::response::parse_response(data, &mut sink, last_len, &mut prog) {
+            Ok(consumed) => consumed as c_int,
+            Err(crate::core::Error::Partial) => -2,
+            Err(crate::core::Error::Malformed) => -1,
+        };
+        if let Some(v) = prog.version {
+            *minor_version = v;
+        }
+        if let Some(v) = prog.status {
+            *status = v;
+        }
+        if let Some((off, len)) = prog.msg {
+            // SAFETY: offsets lie inside the input by construction.
+            *msg = buf.add(off);
+            *msg_len = len;
+        }
+        *num_headers = prog.headers;
+        r
+    }
 }
 
 /// Parses a standalone header block.
