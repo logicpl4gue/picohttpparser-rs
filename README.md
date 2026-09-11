@@ -2,7 +2,12 @@
 
 **PicoHTTPParser had decades to stop segfaulting on hostile input. It didn't. So we rebuilt it: 1,527 lines of Rust, zero allocations per parse, every behavior pinned against the C original instead of guessed.**
 
-`◉ C agreement: 133,352 / 133,352` · `◉ upstream suite: 8/8 · 299 assertions` · `◉ fuzz: ~1.94M executions, 0 crashes` · `◉ unsafe: 7 blocks, one file` · `◉ slow rows hidden: 0` · `◉ license: MIT`
+[![language](https://img.shields.io/badge/language-Rust-ce422b)](https://www.rust-lang.org)
+[![agreement](https://img.shields.io/badge/C%20agreement-133%2C352%20%2F%20133%2C352-green)](.)
+[![suite](https://img.shields.io/badge/upstream%20suite-8%2F8%2C%20299%20assertions-green)](.)
+[![fuzz](https://img.shields.io/badge/fuzz-1.94M%20runs%2C%200%20crashes-green)](.)
+[![unsafe](https://img.shields.io/badge/unsafe-7%20blocks%2C%20one%20file-yellow)](src/ffi.rs)
+[![honesty](https://img.shields.io/badge/slow%20rows%20hidden-0-blue)](.)
 
 > Your HTTP parser has corners that segfault. Ours has four, all filed, all refused on purpose.
 
