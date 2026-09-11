@@ -6,7 +6,7 @@
 
 > Your HTTP parser has corners that segfault. Ours has four, all filed, all refused on purpose.
 
-[Scoreboard](#scoreboard) · [Speed](#speed) · [Adversarial](#adversarial) · [Opinions](#opinions) · [Scope](#scope) · [Quick start](#quick-start)
+[Scoreboard](#scoreboard) · [Speed](#speed) · [Adversarial](#adversarial) · [The fight](#the-fight) · [Opinions](#opinions) · [Hot takes](#hot-takes) · [Scope](#scope) · [Quick start](#quick-start)
 
 ---
 
@@ -14,13 +14,17 @@
 
 Same machine, same inputs, both implementations. Not "passes its own suite": every case reproduces the C original's return value, pointers, lengths, and decoder state exactly.
 
-| check | result |
-|---|---|
-| differential vs pinned `f4d94b48` | **133,352 / 133,352 agree** ✅ |
-| unmodified upstream suite | 8/8 subtests · 299 assertions ✅ |
-| deterministic fuzz campaign | ~1.94M executions · 0 crashes either side ✅ |
-| divergences D001–D004 | all fail-closed, all filed, none silent |
-| real-consumer proof (H2O/Plack/Furl) | 🔜 parked, no OpenSSL dev libs on the build box |
+```
+picohttpparser-rs vs PicoHTTPParser f4d94b48   (pinned; SHA-256 across 8 files)
+
+  differential cases    ████████████████████  133,352 / 133,352  agree
+  upstream suite        ████████████████████  8/8 subtests · 299 assertions
+  fuzz executions       ████████████████████  ~1.94M · 0 crashes either side
+  divergences           D001–D004             every one fail-closed, none silent
+  real-consumer proof   ░░░░░░░░░░░░░░░░░░░░  parked: no OpenSSL dev libs (see Scope)
+```
+
+**133,352 / 133,352.** Not "passes its own test suite": every case reproduces the C original's return value, pointers, lengths, and decoder state exactly.
 
 Request 87,052 · response 20,678 · headers 21,924 · chunked 3,698 (struct-memcmp lockstep). The four divergences are one species: inputs where C's defined behavior is an overread or a hang, where this crate returns `-2`. Matching a segfault is malpractice, not compatibility. Reproducers and reasoning in `docs/divergences.md`.
 
@@ -58,6 +62,17 @@ Know an input family that breaks HTTP parsers and isn't in the corpus (158 files
 
 ---
 
+## The fight
+
+| Alternative | Steelman (why smart teams pick it) | Where this crate disagrees |
+|---|---|---|
+| Just keep the battle-tested C | Allocation-free, zero-copy, shipped in real software. Correct by survival. | Agreed, which is why it stayed as oracle instead of being replaced on vibes. The only claim here is indistinguishability: 133,352 cases, 0 mismatches. |
+| Just rewrite it in the safe language of the month | A fresh port can delete whole bug classes on day one. | A port without an oracle is a new parser wearing the old name. Ours replays every byte against pinned `f4d94b48`: 87,052 request + 20,678 response + 21,924 headers + 3,698 chunked, 0 mismatches. |
+| Just use a full HTTP framework | Routing, TLS, and H2 for free; hand-rolled parsing looks like yak-shaving. | If you need a framework, use one. If you need this seam, relink it: identical contract, byte-identical loopback transcripts against C and Rust. |
+| Just claim Rust beats C and post the wins | Two green rows (0.827, 0.680) would make a great headline. | Headline-benchmarking is how rewrites gaslight readers. The losses ship in the same table: 1.185, 1.199, 1.482, 1.811. |
+
+---
+
 ## Opinions
 
 1. **Publish your losses or your wins don't count.**
@@ -65,6 +80,20 @@ Know an input family that breaks HTTP parsers and isn't in the corpus (158 files
 3. **Zero-copy means zero allocations per parse.** Not "mostly" zero.
 4. **The battle-tested C is the oracle, not the enemy.** Four fail-closed hardenings, documented, never silently copied.
 5. **Correct, then compatible, then measurable, then fast.** In that order. No skipping.
+
+Five beliefs, each defensible in one breath. Argue with any of them in issues.
+
+---
+
+## Hot takes
+
+Questions people will argue about, answered with a stance:
+
+- **"Why not just keep the C?"** Because then your edge behavior is whatever the C happens to do, including reading past your buffer. Ours is defined by 133,352 vectors you can re-run, plus four filed refusals. Pick your religion.
+- **"1.811× on malformed input? Embarrassing."** It's the fixed-cost floor of the safe core on a byte-1 reject, printed in the same table as the 0.680 win. Re-measure on your machine before quoting ours.
+- **"O3 regression, noise?"** Same-session control: Rust got 1.68× worse going O2 to O3 on the malformed path while C moved the other way. That's not noise, that's an open ticket. Bring your box and your flags.
+- **"Text chips instead of badges? Cheap."** There is no CI or registry behind this repo, so a badge would be costume. Chips state numbers; badges imply infrastructure. Plain beats shiny when shiny would be lying.
+- **"No H2O integration? Toy project?"** Loopback TCP plus ctypes proof is done; genuine H2O/Plack/Furl integration is parked, not dodged. The first box with OpenSSL dev libs gets to be the referee, and the next integration this README prints is that one, whatever it says, including if it breaks us.
 
 ---
 
@@ -80,6 +109,8 @@ Know an input family that breaks HTTP parsers and isn't in the corpus (158 files
 | zero allocations per parse · panic-free core | ✅ |
 | loopback TCP + ctypes consumers | ✅ byte-identical |
 | H2O/Plack/Furl integration · PGO · SIMD prize | 🔜 parked, each with a filed reason |
+
+Frozen means frozen: new work doesn't move old vectors. **[YOU DECIDE] Which real-consumer proof lands first**, H2O for server-grade pressure or Plack/Furl for ecosystem parity? Vote in issues.
 
 ---
 
@@ -109,3 +140,5 @@ Sixty seconds from clone to re-running the scoreboard. Limits that apply: single
 ---
 
 *⭐ Star if a buffer overread has personally victimized you, or if you've ever trusted a benchmark that hid its 1.811× rows. Found an input that breaks parity? File it: the corpus takes contributions, and the ledger takes names.*
+
+*PicoHTTPParser, minus the segfaults.*
